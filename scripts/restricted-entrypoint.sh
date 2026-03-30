@@ -19,6 +19,17 @@ block_binaries() {
     fi
 }
 
+generate_terminal_files() {
+    if [ -x /setup/generate_files.sh ]; then
+        /setup/generate_files.sh
+    fi
+
+    # Do not expose session secrets to the in-terminal shell environment.
+    unset REAL_UID || true
+    unset CORRECT_PC || true
+    unset COMPUTER_ID || true
+}
+
 install_wrappers() {
     mkdir -p "$RESTRICTED_BIN"
 
@@ -53,7 +64,7 @@ EOF
     cat > "$RESTRICTED_BIN/pwd" << 'EOF'
 #!/bin/sh
 set -eu
-printf '%s\n' "/workspace"
+printf '%s\n' "/home/player"
 EOF
 
     cat > "$RESTRICTED_BIN/whoami" << 'EOF'
@@ -98,15 +109,16 @@ EOF
 
 start_shell() {
     export PATH="$RESTRICTED_BIN"
-    export HOME="/workspace"
+    export HOME="/home/player"
 
     if [ -n "${TERMINAL_EXEC_CMD:-}" ]; then
-        exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/workspace" /bin/rbash -c "$TERMINAL_EXEC_CMD"
+        exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/home/player" /bin/rbash -c "$TERMINAL_EXEC_CMD"
     fi
 
-    exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/workspace" /bin/rbash
+    exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/home/player" /bin/rbash
 }
 
 block_binaries
 install_wrappers
+generate_terminal_files
 start_shell

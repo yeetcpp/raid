@@ -1,9 +1,17 @@
 const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
+const crypto = require('crypto');
 
 const PORT = process.env.TERMINAL_BRIDGE_PORT ? Number(process.env.TERMINAL_BRIDGE_PORT) : 8787;
 const PROJECT_ROOT = path.resolve(__dirname, '..');
+
+function generateUid() {
+    return crypto.randomBytes(6).toString('hex').toUpperCase().match(/.{1,2}/g).join(':');
+}
+
+const SESSION_REAL_UID = generateUid();
+const SESSION_CORRECT_PC = String(crypto.randomInt(1, 7));
 
 function writeJson(res, statusCode, payload) {
     res.writeHead(statusCode, {
@@ -15,7 +23,9 @@ function writeJson(res, statusCode, payload) {
     res.end(JSON.stringify(payload));
 }
 
-function runDockerCommand(command, callback) {
+function runDockerCommand(command, computerId, callback) {
+    const normalizedComputerId = String(computerId);
+
     const child = spawn(
         'docker',
         [
@@ -27,6 +37,12 @@ function runDockerCommand(command, callback) {
             '-T',
             '-e',
             `TERMINAL_EXEC_CMD=${command}`,
+            '-e',
+            `REAL_UID=${SESSION_REAL_UID}`,
+            '-e',
+            `CORRECT_PC=${SESSION_CORRECT_PC}`,
+            '-e',
+            `COMPUTER_ID=${normalizedComputerId}`,
             'linux-terminal',
         ],
         {
@@ -109,12 +125,19 @@ const server = http.createServer((req, res) => {
         }
 
         const command = typeof payload.command === 'string' ? payload.command.trim() : '';
+        const computerId = Number(payload.computerId);
+
         if (!command) {
             writeJson(res, 400, { error: 'command is required' });
             return;
         }
 
-        runDockerCommand(command, (error, result) => {
+        if (!Number.isInteger(computerId) || computerId < 1 || computerId > 6) {
+            writeJson(res, 400, { error: 'computerId must be an integer from 1 to 6' });
+            return;
+        }
+
+        runDockerCommand(command, computerId, (error, result) => {
             if (error) {
                 writeJson(res, 500, {
                     error: 'Failed to execute docker command',
@@ -143,5 +166,5 @@ server.on('error', (error) => {
 
 server.listen(PORT, () => {
     console.log(`[terminal-bridge] listening on http://localhost:${PORT}`);
-    console.log('[terminal-bridge] endpoint: POST /execute { command: "ls" }');
+    console.log('[terminal-bridge] endpoint: POST /execute { command: "ls", computerId: 1 }');
 });

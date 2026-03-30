@@ -2,7 +2,7 @@ ARG BASE_IMAGE=debian:bookworm-slim
 FROM ${BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /workspace
+WORKDIR /home/player
 
 # Install useful terminal tools for either Debian/Ubuntu or Alpine base images.
 RUN if command -v apt-get >/dev/null 2>&1; then \
@@ -49,10 +49,12 @@ RUN if command -v apt-get >/dev/null 2>&1; then \
     fi
 
 RUN if command -v useradd >/dev/null 2>&1; then \
-        useradd -m -d /workspace -s /bin/rbash terminal || true; \
+        useradd -m -d /home/player -s /bin/rbash terminal || true; \
     elif command -v adduser >/dev/null 2>&1; then \
-        adduser -D -h /workspace -s /bin/rbash terminal || true; \
+        adduser -D -h /home/player -s /bin/rbash terminal || true; \
     fi
+
+RUN mkdir -p /home/player/files /setup && chown -R terminal:terminal /home/player || true
 
 RUN mkdir -p /etc/sudoers.d && \
     printf '%s\n' 'Defaults:terminal secure_path="/usr/local/restricted/bin"' > /etc/sudoers.d/terminal && \
@@ -61,6 +63,8 @@ RUN mkdir -p /etc/sudoers.d && \
     chmod 0440 /etc/sudoers.d/terminal
 
 COPY scripts/restricted-entrypoint.sh /usr/local/bin/restricted-entrypoint.sh
+COPY setup/generate_files.sh /setup/generate_files.sh
 RUN chmod 0755 /usr/local/bin/restricted-entrypoint.sh
+RUN chmod 0755 /setup/generate_files.sh
 
 ENTRYPOINT ["/usr/local/bin/restricted-entrypoint.sh"]

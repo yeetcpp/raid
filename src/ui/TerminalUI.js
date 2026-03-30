@@ -7,9 +7,9 @@ export class TerminalUI {
         this.currentTerminalId = null;
         this.currentInput = '';
         this.outputLines = [];
-        this.maxLines = 26;
+        this.maxLines = 18;
         this.executing = false;
-        this.prompt = 'root@docker:/workspace#';
+        this.prompt = 'root@docker:/home/player/files#';
         this.bridgeBaseUrl = 'http://localhost:8787';
 
         this.createUI();
@@ -25,6 +25,10 @@ export class TerminalUI {
         const height = Math.min(470, screenHeight - 50);
         const x = screenWidth / 2;
         const y = screenHeight / 2;
+        const lineHeight = 13 + 4;
+
+        // Keep output capped to guaranteed visible rows so text never bleeds outside window.
+        this.maxLines = Math.max(10, Math.floor((height - 120) / lineHeight) - 1);
 
         // Backdrop
         this.backdrop = this.scene.add.rectangle(x, y, screenWidth, screenHeight, 0x000000, 0.86)
@@ -57,13 +61,25 @@ export class TerminalUI {
         }).setOrigin(1, 0).setDepth(203).setScrollFactor(0);
 
         // Terminal content area
-        this.contentText = this.scene.add.text(x - width / 2 + 20, y - height / 2 + 60, '', {
+        const contentX = x - width / 2 + 20;
+        const contentY = y - height / 2 + 60;
+        const contentWidth = width - 40;
+        const contentHeight = height - 90;
+
+        this.contentText = this.scene.add.text(contentX, contentY, '', {
             fontFamily: 'monospace',
             fontSize: '13px',
             fill: '#00ff88',
             lineSpacing: 4,
-            wordWrap: { width: width - 40 }
+            wordWrap: { width: contentWidth }
         }).setDepth(203).setScrollFactor(0);
+
+        // Hard clip output to terminal viewport so long output never draws outside the panel.
+        this.contentMaskGraphics = this.scene.add.graphics().setScrollFactor(0).setDepth(202);
+        this.contentMaskGraphics.fillStyle(0xffffff, 1);
+        this.contentMaskGraphics.fillRect(contentX, contentY, contentWidth, contentHeight);
+        this.contentMask = this.contentMaskGraphics.createGeometryMask();
+        this.contentText.setMask(this.contentMask);
 
         // Blinking cursor
         this.cursor = this.scene.add.text(0, 0, '█', {
@@ -71,6 +87,7 @@ export class TerminalUI {
             fontSize: '13px',
             fill: '#00ff88'
         }).setDepth(203).setScrollFactor(0);
+        this.cursor.setMask(this.contentMask);
 
         // Cursor blink animation
         this.scene.tweens.add({
@@ -88,6 +105,7 @@ export class TerminalUI {
             this.headerText,
             this.closeHint,
             this.contentText,
+            this.contentMaskGraphics,
             this.cursor
         ];
     }
@@ -179,7 +197,10 @@ export class TerminalUI {
             const response = await fetch(`${this.bridgeBaseUrl}/execute`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: rawInput })
+                body: JSON.stringify({
+                    command: rawInput,
+                    computerId: this.currentTerminalId
+                })
             });
 
             if (!response.ok) {
