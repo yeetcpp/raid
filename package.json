@@ -1,0 +1,19 @@
+{
+  "name": "flipperphaser",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "terminal:bridge": "node scripts/terminal-bridge.cjs"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "pngjs": "^7.0.0"
+  }
+}

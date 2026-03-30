@@ -1,0 +1,14 @@
+services:
+  linux-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile.terminal
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-debian:bookworm-slim}
+    image: flipper-linux-terminal:latest
+    container_name: flipper-linux-terminal
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:ro
+    stdin_open: true
+    tty: true

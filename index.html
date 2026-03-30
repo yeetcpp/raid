@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RFID Breach: Flipper Protocol</title>
+    <meta name="description" content="A 2D stealth logic puzzle game. Use a Flipper Zero to hack RFID terminals and exploit system flaws.">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: #050508;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+        font-family: 'Courier New', monospace;
+      }
+      #game-container {
+        border: 1px solid #0a1a0a;
+        box-shadow: 0 0 40px rgba(0, 255, 68, 0.05), 0 0 80px rgba(0, 255, 68, 0.02);
+      }
+      #game-container canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
