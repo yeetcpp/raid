@@ -12,6 +12,14 @@ export class BootScene extends Phaser.Scene {
         this.load.image('collidingMap', 'assets/CollidingMap.png');
         this.load.json('mapCollisions', 'assets/collisions.json');
 
+        // --- Load Flipper UI Assets ---
+        this.load.image('FlipperUI', 'assets/FlipperUI.png');
+        this.load.image('FlipperUp', 'assets/FlipperUp.png');
+        this.load.image('FlipperDown', 'assets/FlipperDown.png');
+        this.load.image('FlipperLeft', 'assets/FlipperLeft.png');
+        this.load.image('FlipperRight', 'assets/FlipperRight.png');
+        this.load.image('FlipperSelect', 'assets/FlipperSelect.png');
+
         // --- Generate remaining textures procedurally ---
         const gfx = this.add.graphics();
 

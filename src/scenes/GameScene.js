@@ -27,7 +27,6 @@ export class GameScene extends Phaser.Scene {
 
         this.buildCollisionBodies();
         this.buildZones();
-        this.buildScanners();
         this.buildSources();
         this.buildServerEntryBarrier();
         this.buildComputers();
@@ -105,43 +104,6 @@ export class GameScene extends Phaser.Scene {
         this.serverRoomRect = this.zones.find((zone) => zone.id === 'Server Room')?.rect || null;
     }
 
-    buildScanners() {
-        const scannerDefs = [
-            { scannerId: 'HUB_L1_READER', label: 'HUB L1 READER', x: 504, y: 300, required: 1 },
-            { scannerId: 'LAB_L2_READER', label: 'SERVER L2 READER', x: 372, y: 736, required: 2 },
-            { scannerId: 'STAFF_CORRIDOR_L3_READER', label: 'STAFF CORRIDOR L3', x: 760, y: 760, required: 3 }
-        ];
-
-        scannerDefs.forEach((entry) => {
-            const sprite = this.add.image(entry.x, entry.y, 'terminal').setDepth(17);
-            const pulse = this.add.circle(entry.x, entry.y, 28, 0x79d5de, 0.12).setDepth(16);
-            this.tweens.add({
-                targets: pulse,
-                alpha: { from: 0.08, to: 0.22 },
-                scaleX: { from: 1, to: 1.45 },
-                scaleY: { from: 1, to: 1.45 },
-                duration: 1700,
-                repeat: -1,
-                yoyo: true,
-                ease: 'Sine.easeInOut'
-            });
-
-            const label = this.add.text(entry.x, entry.y - 42, entry.label, {
-                fontFamily: 'monospace',
-                fontSize: '10px',
-                fill: '#9ad7e0'
-            }).setOrigin(0.5).setDepth(18);
-
-            this.scanners.push({
-                ...entry,
-                sprite,
-                label,
-                pulse,
-                radius: 100  // Increased from 68 to 100 for better interaction range
-            });
-        });
-    }
-
     buildServerEntryBarrier() {
         // Seal all practical entry paths into the server room until L2 auth succeeds.
         const barrierDefs = [
@@ -162,14 +124,17 @@ export class GameScene extends Phaser.Scene {
 
     buildComputers() {
         // Server room bounds: Rectangle(0, 520, 340, 390)
-        // Place 6 computers distributed across the server room
+        // 6 computers positioned exactly where they appear visually in the server room
+        // TOP ROW (2): left and right desks at the top
+        // MID ROW (2): left and center cabinets in the middle
+        // BOTTOM ROW (2): left and right stations at the bottom
         const computerDefs = [
-            { id: 1, x: 80, y: 600, label: 'SERVER-01' },
-            { id: 2, x: 240, y: 600, label: 'SERVER-02' },
-            { id: 3, x: 80, y: 720, label: 'SERVER-03' },   // This one has the real L3 UID
-            { id: 4, x: 240, y: 720, label: 'SERVER-04' },
-            { id: 5, x: 80, y: 840, label: 'SERVER-05' },
-            { id: 6, x: 240, y: 840, label: 'SERVER-06' }
+            { id: 1, x: 225, y: 920, label: 'SERVER-01' },     // TOP LEFT
+            { id: 2, x: 155, y: 920, label: 'SERVER-02' },    // TOP RIGHT
+            { id: 3, x: 290, y: 730, label: 'SERVER-03' },    // MID LEFT (This one has the real L3 UID)
+            { id: 4, x: 350, y: 730, label: 'SERVER-04' },    // MID RIGHT
+            { id: 5, x: 85, y: 850, label: 'SERVER-05' },     // BOTTOM LEFT
+            { id: 6, x: 85, y: 800, label: 'SERVER-06' }     // BOTTOM RIGHT
         ];
 
         const computerStyle = {
@@ -186,10 +151,10 @@ export class GameScene extends Phaser.Scene {
         };
 
         computerDefs.forEach((def) => {
-            // Computer visual (small rectangle representing a terminal)
-            const visual = this.add.rectangle(def.x, def.y, 28, 24, 0x1a3a2a, 0.95)
+            // Computer visual (small rectangle representing a terminal) - invisible
+            const visual = this.add.rectangle(def.x, def.y, 28, 24, 0x1a3a2a, 0)
                 .setDepth(17)
-                .setStrokeStyle(1, 0x00ff88, 0.7);
+                .setStrokeStyle(1, 0x00ff88, 0);
 
             // Computer label
             const label = this.add.text(def.x, def.y - 22, def.label, computerStyle)

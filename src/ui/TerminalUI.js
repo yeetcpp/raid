@@ -11,6 +11,10 @@ export class TerminalUI {
         this.executing = false;
         this.prompt = 'root@docker:/home/player/files#';
         this.bridgeBaseUrl = 'http://localhost:8787';
+        
+        // Command history
+        this.commandHistory = [];
+        this.currentHistoryIndex = -1;
 
         this.createUI();
         this.hide();
@@ -26,6 +30,13 @@ export class TerminalUI {
         const x = screenWidth / 2;
         const y = screenHeight / 2;
         const lineHeight = 13 + 4;
+
+        // Store content area position for cursor calculation
+        this.contentX = x - width / 2 + 20;
+        this.contentY = y - height / 2 + 60;
+        this.contentWidth = width - 40;
+        this.contentHeight = height - 90;
+        this.lineHeight = lineHeight;
 
         // Keep output capped to guaranteed visible rows so text never bleeds outside window.
         this.maxLines = Math.max(10, Math.floor((height - 120) / lineHeight) - 1);
@@ -61,24 +72,20 @@ export class TerminalUI {
         }).setOrigin(1, 0).setDepth(203).setScrollFactor(0);
 
         // Terminal content area
-        const contentX = x - width / 2 + 20;
-        const contentY = y - height / 2 + 60;
-        const contentWidth = width - 40;
-        const contentHeight = height - 90;
-
-        this.contentText = this.scene.add.text(contentX, contentY, '', {
+        this.contentText = this.scene.add.text(this.contentX, this.contentY, '', {
             fontFamily: 'monospace',
             fontSize: '13px',
             fill: '#00ff88',
             lineSpacing: 4,
-            wordWrap: { width: contentWidth }
+            wordWrap: { width: this.contentWidth }
         }).setDepth(203).setScrollFactor(0);
 
         // Hard clip output to terminal viewport so long output never draws outside the panel.
         this.contentMaskGraphics = this.scene.add.graphics().setScrollFactor(0).setDepth(202);
         this.contentMaskGraphics.fillStyle(0xffffff, 1);
-        this.contentMaskGraphics.fillRect(contentX, contentY, contentWidth, contentHeight);
+        this.contentMaskGraphics.fillRect(this.contentX, this.contentY, this.contentWidth, this.contentHeight);
         this.contentMask = this.contentMaskGraphics.createGeometryMask();
+        this.contentMaskGraphics.setVisible(false);
         this.contentText.setMask(this.contentMask);
 
         // Blinking cursor
@@ -105,7 +112,6 @@ export class TerminalUI {
             this.headerText,
             this.closeHint,
             this.contentText,
-            this.contentMaskGraphics,
             this.cursor
         ];
     }
@@ -117,6 +123,7 @@ export class TerminalUI {
         this.visible = true;
         this.currentInput = '';
         this.outputLines = [];
+        this.currentHistoryIndex = -1;
 
         // Show all UI elements
         this.uiElements.forEach(el => el.setVisible(true));
@@ -151,6 +158,37 @@ export class TerminalUI {
             return;
         }
 
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (this.commandHistory.length === 0) return;
+            
+            if (this.currentHistoryIndex === -1) {
+                this.currentHistoryIndex = this.commandHistory.length - 1;
+            } else if (this.currentHistoryIndex > 0) {
+                this.currentHistoryIndex--;
+            }
+            
+            this.currentInput = this.commandHistory[this.currentHistoryIndex];
+            this.renderTerminal();
+            return;
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (this.commandHistory.length === 0) return;
+            
+            if (this.currentHistoryIndex < this.commandHistory.length - 1) {
+                this.currentHistoryIndex++;
+                this.currentInput = this.commandHistory[this.currentHistoryIndex];
+            } else {
+                this.currentHistoryIndex = -1;
+                this.currentInput = '';
+            }
+            
+            this.renderTerminal();
+            return;
+        }
+
         if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
             this.currentInput += event.key;
             this.renderTerminal();
@@ -168,6 +206,7 @@ export class TerminalUI {
         if (trimmedInput.length === 0) {
             this.outputLines.push(this.prompt);
             this.currentInput = '';
+            this.currentHistoryIndex = -1;
             this.clampOutputLines();
             this.renderTerminal();
             return;
@@ -176,6 +215,7 @@ export class TerminalUI {
         if (trimmedInput === 'clear') {
             this.outputLines = [];
             this.currentInput = '';
+            this.currentHistoryIndex = -1;
             this.renderTerminal();
             return;
         }
@@ -184,6 +224,12 @@ export class TerminalUI {
             this.close();
             return;
         }
+
+        // Add to command history
+        if (!this.commandHistory.includes(rawInput)) {
+            this.commandHistory.push(rawInput);
+        }
+        this.currentHistoryIndex = -1;
 
         this.outputLines.push(`${this.prompt} ${rawInput}`);
         this.currentInput = '';
@@ -245,9 +291,13 @@ export class TerminalUI {
         const lines = [...this.outputLines, `${this.prompt} ${this.currentInput}`];
         this.contentText.setText(lines.join('\n'));
 
-        const lineHeight = 13 + 4;
-        const cursorX = this.contentText.x + this.contentText.width;
-        const cursorY = this.contentText.y + (lines.length - 1) * lineHeight;
+        // Calculate cursor position based on current line and character count
+        const currentLine = `${this.prompt} ${this.currentInput}`;
+        // For monospace font, each character is approximately 7.8 pixels wide at 13px font size
+        const charWidth = 7.8;
+        const cursorX = this.contentX + (currentLine.length * charWidth);
+        const cursorY = this.contentY + ((lines.length - 1) * this.lineHeight);
+        
         this.cursor.setPosition(cursorX, cursorY);
     }
 
