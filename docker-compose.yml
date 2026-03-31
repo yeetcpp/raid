@@ -1,0 +1,153 @@
+# ============================================================
+# Docker Compose Configuration for FlipperPhaser Project
+# Orchestrates the main application and terminal bridge services
+# ============================================================
+
+services:
+  # Main FlipperPhaser Application Service
+  flipper-app:
+    # Build from local Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    # Container name for easy reference
+    container_name: flipper-phaser-container
+    
+    # Image name
+    image: flipper-phaser:latest
+    
+    # Port mapping: Host port 80 → Container port 80
+    ports:
+      - "80:80"
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - TERMINAL_BRIDGE_URL=http://terminal-bridge:8787
+    
+    # Volume for live development (optional - comment out for production)
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Memory and CPU limits (optional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    # Logging configuration (optional)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Depends on terminal bridge service
+    depends_on:
+      terminal-bridge:
+        condition: service_started
+    
+    # Network
+    networks:
+      - flipper-network
+  
+  # Terminal Bridge Service
+  terminal-bridge:
+    # Build from DockerFile.bridge
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    
+    # Container name
+    container_name: flipper-terminal-bridge
+    
+    # Image name
+    image: flipper-terminal-bridge:latest
+    
+    # Port mapping: Host port 8787 → Container port 8787
+    ports:
+      - "8787:8787"
+    
+    # Working directory
+    working_dir: /app
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - TERMINAL_BRIDGE_PORT=8787
+    
+    # Mount docker socket to allow container to spawn docker commands
+    # Also mount the entire project so docker-compose.terminal.yml is accessible
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/app:ro
+    
+    # Terminal bridge depends on linux-terminal being ready
+    depends_on:
+      linux-terminal:
+        condition: service_started
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network
+    networks:
+      - flipper-network
+
+  # Linux Terminal Container Service
+  linux-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile.terminal
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-debian:bookworm-slim}
+    
+    image: flipper-linux-terminal:latest
+    container_name: flipper-linux-terminal
+    working_dir: /home/player/files
+    stdin_open: true
+    tty: true
+    command: /bin/bash -c "trap 'exit 0' SIGTERM; /bin/sleep infinity"
+    environment:
+      REAL_UID: ${REAL_UID:-FF:AA:BB:CC:DD:EE}
+      CORRECT_PC: ${CORRECT_PC:-1}
+      COMPUTER_ID: ${COMPUTER_ID:-1}
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    networks:
+      - flipper-network
+
+# Network configuration
+networks:
+  flipper-network:
+    name: flipper-network
+    driver: bridge

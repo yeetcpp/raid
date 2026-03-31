@@ -10,7 +10,14 @@ export class TerminalUI {
         this.maxLines = 18;
         this.executing = false;
         this.prompt = 'root@docker:/home/player/files#';
-        this.bridgeBaseUrl = 'http://localhost:8787';
+        
+        // Detect bridge URL - use window.location.host for port, Docker service name for hostname
+        // In Docker: accessible at http://terminal-bridge:8787
+        // Locally: accessible at http://localhost:8787
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+        const bridgeHost = isLocalhost ? 'localhost' : 'terminal-bridge';
+        this.bridgeBaseUrl = `http://${bridgeHost}:8787`;
         
         // Command history
         this.commandHistory = [];
@@ -270,8 +277,15 @@ export class TerminalUI {
                 this.outputLines.push(...output);
             }
         } catch (error) {
-            this.outputLines.push('[bridge] unable to reach docker terminal bridge at http://localhost:8787');
-            this.outputLines.push('start bridge: npm run terminal:bridge');
+            const hostname = window.location.hostname;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+            const expectedUrl = isLocalhost ? 'http://localhost:8787' : 'http://terminal-bridge:8787';
+            this.outputLines.push(`[bridge] unable to reach docker terminal bridge at ${expectedUrl}`);
+            if (isLocalhost) {
+                this.outputLines.push('start bridge: npm run terminal:bridge');
+            } else {
+                this.outputLines.push('ensure terminal-bridge service is running in docker-compose');
+            }
             this.outputLines.push(String(error && error.message ? error.message : error));
         } finally {
             this.executing = false;

@@ -1,0 +1,75 @@
+# ============================================================
+# Docker Ignore File - Excludes files/folders from Docker build
+# ============================================================
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Node modules (will be installed fresh in container)
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build output
+dist
+build
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage
+.nyc_output
+test-results
+*.lcov
+
+# Documentation
+docs
+*.md
+!README.md
+
+# OS files
+*.log
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Docker files (don't need in image)
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+.devcontainer
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Misc unnecessary files
+license
+LICENSE
+CONTRIBUTING.md
+CHANGELOG.md

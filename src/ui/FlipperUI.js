@@ -17,6 +17,8 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.statusText = '';
         this.busy = false;
         this.bruteforceActive = false;
+        this.textInputBuffer = '';  // For Add ID text entry
+        this.textInputMode = false; // Whether we're in text input mode
 
         // ============================================================
         // EASY EDIT SECTION - Adjust positions and sizes here
@@ -302,12 +304,40 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         scene.input.keyboard.on('keyup-RIGHT', () => this.flipperRightOverlay.setVisible(false));
 
         scene.input.keyboard.on('keydown-ENTER', () => {
+            if (this.textInputMode && this.appSubScreen === 'add_id') {
+                // In text input mode, Enter confirms the input
+                this.handleRFIDInput('enter');
+                return;
+            }
             this.flipperSelectOverlay.setVisible(true);
             this.handleInput('enter');
         });
         scene.input.keyboard.on('keyup-ENTER', () => this.flipperSelectOverlay.setVisible(false));
 
-        scene.input.keyboard.on('keydown-Q', () => this.handleInput('back'));
+        scene.input.keyboard.on('keydown-Q', () => {
+            if (this.textInputMode && this.appSubScreen === 'add_id') {
+                // In text input mode, Q and F are typeable; use Enter to exit
+                return;
+            }
+            this.handleInput('back');
+        });
+
+        // Character input for text entry (Add ID mode)
+        scene.input.keyboard.on('keydown', (event) => {
+            if (this.textInputMode && this.appSubScreen === 'add_id') {
+                const key = event.key.toUpperCase();
+                // Accept alphanumeric, underscore, hyphen, colon, F, and Q for UID formats
+                if (/^[A-Z0-9_\-FQ:]$/.test(key)) {
+                    if (this.textInputBuffer.length < 32) {
+                        this.textInputBuffer += key;
+                        this.renderMenu();
+                    }
+                } else if (key === 'BACKSPACE' || event.keyCode === 8) {
+                    this.textInputBuffer = this.textInputBuffer.slice(0, -1);
+                    this.renderMenu();
+                }
+            }
+        });
 
         rfidSystem.on('signals-updated', () => {
             if (this.visible && this.currentScreen === 'app' && this.selectedMainApp === 1) {
@@ -334,6 +364,8 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.bruteforceActive = false;
         this.bruteBarBg.setVisible(false);
         this.bruteBarFill.setVisible(false);
+        this.textInputMode = false;
+        this.textInputBuffer = '';
     }
 
     handleInput(action) {
@@ -404,6 +436,50 @@ export class FlipperUI extends Phaser.GameObjects.Container {
     }
 
     handleRFIDInput(action) {
+        // Handle text input mode for Add ID
+        if (this.textInputMode && this.appSubScreen === 'add_id') {
+            if (action === 'back') {
+                this.textInputMode = false;
+                this.textInputBuffer = '';
+                this.appSubScreen = 'emulate';
+                this.selectedIndex = 0;
+                this.renderMenu();
+                return;
+            }
+            // Enter/confirm to save and emulate
+            if (action === 'enter' && this.textInputBuffer.length > 0) {
+                const newUID = this.textInputBuffer.toUpperCase();
+                
+                // Create a signal object for the custom UID
+                const customSignal = {
+                    uid: newUID,
+                    clearance: 3,  // Default to highest clearance for custom entries
+                    source: 'MANUAL_ENTRY',
+                    label: 'Manual UID',
+                    color: 'Yellow'
+                };
+                
+                // Add the signal to the system
+                const addedOk = rfidSystem.addSignal(customSignal);
+                
+                // Now activate it
+                const ok = rfidSystem.setActiveSignal(newUID);
+                if (ok || addedOk) {
+                    this.statusText = `EMULATING: ${newUID}`;
+                    this.textInputMode = false;
+                    this.appSubScreen = 'emulate';
+                    this.selectedIndex = 0;
+                    console.log(`Custom ID emulation active: ${newUID}`);
+                } else {
+                    this.statusText = `Failed to emulate: ${newUID}`;
+                }
+                this.textInputBuffer = '';
+                this.renderMenu();
+                return;
+            }
+            return;
+        }
+
         const entries = this.getRFIDEntries();
 
         if (action === 'up') {
@@ -441,8 +517,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         if (this.appSubScreen === 'main') {
             return ['Scan', 'Saved', 'Emulate'];
         }
-        if (this.appSubScreen === 'saved' || this.appSubScreen === 'emulate') {
+        if (this.appSubScreen === 'saved') {
             return rfidSystem.getSavedSignals().map((signal) => signal.uid);
+        }
+        if (this.appSubScreen === 'emulate') {
+            const saved = rfidSystem.getSavedSignals().map((signal) => signal.uid);
+            return [...saved, 'Add ID'];
         }
         return [];
     }
@@ -477,6 +557,14 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         }
 
         if (this.appSubScreen === 'emulate') {
+            if (choice === 'Add ID') {
+                this.appSubScreen = 'add_id';
+                this.textInputBuffer = '';
+                this.textInputMode = true;
+                this.renderMenu();
+                return;
+            }
+
             const ok = rfidSystem.setActiveSignal(choice);
             if (ok) {
                 const signal = rfidSystem.getSavedSignals().find((s) => s.uid === choice);
@@ -666,6 +754,10 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             } else {
                 content += entries
                     .map((uid, index) => {
+                        if (uid === 'Add ID') {
+                            const prefix = index === this.selectedIndex ? '►' : ' ';
+                            return `${prefix} ${uid}`;
+                        }
                         const signal = savedSignals.find((entry) => entry.uid === uid);
                         const prefix = index === this.selectedIndex ? '►' : ' ';
                         const activeMarker = (active && active.uid === uid) ? ' ★' : '';
@@ -673,6 +765,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                     })
                     .join('\n');
             }
+        } else if (this.appSubScreen === 'add_id') {
+            content = 'ENTER L-3 UID:\n\n';
+            content += this.textInputBuffer;
+            const cursorChar = Math.floor(Date.now() / 500) % 2 === 0 ? '█' : ' ';
+            content += cursorChar;
+            content += '\n\n[ENTER] Save\n[BACKSPACE] Delete\n[Q] Cancel';
         }
 
         return content;

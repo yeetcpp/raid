@@ -1,0 +1,35 @@
+# ============================================================
+# Dockerfile for Terminal Bridge Service
+# Runs the terminal bridge API on port 8787
+# ============================================================
+
+FROM docker:26-cli
+
+# Install Node.js on top of docker CLI image
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    curl \
+    git
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm install
+
+# Copy project files
+COPY . .
+
+# Expose port for terminal bridge
+EXPOSE 8787
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8787/ || exit 1
+
+# Run the terminal bridge
+ENTRYPOINT []
+CMD ["node", "scripts/terminal-bridge.cjs"]

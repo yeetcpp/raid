@@ -10,3 +10,17 @@ services:
     working_dir: /home/player/files
     stdin_open: true
     tty: true
+    command: /bin/bash -c "trap 'exit 0' SIGTERM; /bin/sleep infinity"
+    environment:
+      REAL_UID: ${REAL_UID:-FF:AA:BB:CC:DD:EE}
+      CORRECT_PC: ${CORRECT_PC:-1}
+      COMPUTER_ID: ${COMPUTER_ID:-1}
+    networks:
+      - flipper-network
+
+# Use the same network as the main docker-compose
+networks:
+  flipper-network:
+    name: flipper-network
+    driver: bridge
+    external: true

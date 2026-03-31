@@ -49,9 +49,9 @@ RUN if command -v apt-get >/dev/null 2>&1; then \
     fi
 
 RUN if command -v useradd >/dev/null 2>&1; then \
-        useradd -m -d /home/player -s /bin/rbash terminal || true; \
+        useradd -m -d /home/player -s /bin/bash terminal || true; \
     elif command -v adduser >/dev/null 2>&1; then \
-        adduser -D -h /home/player -s /bin/rbash terminal || true; \
+        adduser -D -h /home/player -s /bin/bash terminal || true; \
     fi
 
 RUN mkdir -p /home/player/files /setup && chown -R terminal:terminal /home/player || true
@@ -66,5 +66,12 @@ COPY scripts/restricted-entrypoint.sh /usr/local/bin/restricted-entrypoint.sh
 COPY setup/generate_files.sh /setup/generate_files.sh
 RUN chmod 0755 /usr/local/bin/restricted-entrypoint.sh
 RUN chmod 0755 /setup/generate_files.sh
+
+# Aggressively remove docker-compose and docker binaries
+RUN rm -f /usr/bin/docker /usr/bin/docker-compose /usr/local/bin/docker /usr/local/bin/docker-compose /bin/docker /usr/sbin/docker 2>/dev/null || true
+
+# Remove bash completion scripts to prevent any inference or help display
+RUN rm -rf /etc/bash_completion* /usr/share/bash-completion* || true
+RUN rm -rf /etc/profile.d/* || true
 
 ENTRYPOINT ["/usr/local/bin/restricted-entrypoint.sh"]

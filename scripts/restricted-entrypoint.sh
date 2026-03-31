@@ -8,7 +8,8 @@ block_binaries() {
     for bin in \
         /usr/bin/apt /usr/bin/apt-get /usr/bin/apt-cache /usr/bin/apt-mark \
         /usr/bin/dpkg /usr/bin/dpkg-query /usr/bin/wget /usr/bin/curl \
-        /usr/bin/git /usr/bin/ftp /usr/bin/scp /usr/bin/rsync /usr/bin/ssh; do
+        /usr/bin/git /usr/bin/ftp /usr/bin/scp /usr/bin/rsync /usr/bin/ssh \
+        /usr/bin/docker /usr/local/bin/docker /bin/docker; do
         if [ -e "$bin" ]; then
             chmod 000 "$bin" || true
         fi
@@ -17,6 +18,17 @@ block_binaries() {
     if [ -e /root ]; then
         chmod 000 /root || true
     fi
+    
+    if [ -e /var/run/docker.sock ]; then
+        chmod 000 /var/run/docker.sock || true
+    fi
+    
+    # Block system shell configuration that might call docker
+    for file in /etc/bash.bashrc /etc/bashrc /usr/etc/bashrc /etc/profile.d/*; do
+        if [ -e "$file" ]; then
+            chmod 000 "$file" || true
+        fi
+    done
 }
 
 generate_terminal_files() {
@@ -30,6 +42,27 @@ generate_terminal_files() {
     unset COMPUTER_ID || true
 }
 
+setup_user_bashrc() {
+    # Create bash config that keeps PATH restricted and secure
+    mkdir -p /home/player
+    
+    cat > /home/player/.bashrc << 'BASHRC'
+set +H
+export PATH="/usr/local/restricted/bin"
+export HOME="/home/player"
+unset BASH_COMPLETION
+unset BASH_ENV
+unset ENV
+unalias -a 2>/dev/null || true
+alias docker='echo Access denied' 2>/dev/null
+alias sudo='echo Access denied' 2>/dev/null
+PS1='player@terminal:\W$ '
+BASHRC
+    
+    chmod 644 /home/player/.bashrc
+    chown terminal:terminal /home/player/.bashrc || true
+}
+
 install_wrappers() {
     mkdir -p "$RESTRICTED_BIN"
 
@@ -38,7 +71,7 @@ install_wrappers() {
 set -eu
 for arg in "$@"; do
     case "$arg" in
-        /*|*..*|root|/|/root)
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
             echo "Access denied" >&2
             exit 1
             ;;
@@ -52,7 +85,7 @@ EOF
 set -eu
 for arg in "$@"; do
     case "$arg" in
-        /*|*..*|root|/|/root)
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
             echo "Access denied" >&2
             exit 1
             ;;
@@ -98,6 +131,12 @@ printf '%s\n' 'Allowed commands: ls cat pwd whoami uname echo clear help sudo ex
 printf '%s\n' 'Notes: absolute paths, /root, package managers, and download tools are blocked.'
 EOF
 
+    cat > "$RESTRICTED_BIN/id" << 'EOF'
+#!/bin/sh
+set -eu
+exec /usr/bin/id "$@"
+EOF
+
     cat > "$RESTRICTED_BIN/sudo" << 'EOF'
 #!/bin/sh
 set -eu
@@ -108,17 +147,13 @@ EOF
 }
 
 start_shell() {
-    export PATH="$RESTRICTED_BIN"
-    export HOME="/home/player"
-
-    if [ -n "${TERMINAL_EXEC_CMD:-}" ]; then
-        exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/home/player" /bin/rbash -c "$TERMINAL_EXEC_CMD"
-    fi
-
-    exec /usr/bin/sudo -u "$TERMINAL_USER" -H /usr/bin/env PATH="$RESTRICTED_BIN" HOME="/home/player" /bin/rbash
+    # For docker exec usage, just keep the container running
+    # docker exec will handle command execution with proper environment
+    exec /bin/sleep infinity
 }
 
 block_binaries
 install_wrappers
+setup_user_bashrc
 generate_terminal_files
 start_shell

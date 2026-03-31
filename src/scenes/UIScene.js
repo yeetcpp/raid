@@ -80,6 +80,10 @@ export class UIScene extends Phaser.Scene {
         });
 
         this.input.keyboard.on('keydown-F', () => {
+            // Don't toggle flipper if in text input mode (F should be typeable)
+            if (this.flipper.textInputMode && this.flipper.appSubScreen === 'add_id') {
+                return;
+            }
             this.toggleFlipper();
         });
 

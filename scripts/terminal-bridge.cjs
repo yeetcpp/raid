@@ -26,24 +26,24 @@ function writeJson(res, statusCode, payload) {
 function runDockerCommand(command, computerId, callback) {
     const normalizedComputerId = String(computerId);
 
+    // Compose command that runs with restricted PATH and as terminal user
+    // This ensures proper environment isolation
+    const fullCommand = `export PATH="/usr/local/restricted/bin" HOME="/home/player" COMPUTER_ID="${normalizedComputerId}"; source /home/player/.bashrc 2>/dev/null; ${command}`;
+
+    // Use docker exec directly to run command in the running container
+    // This works inside the bridge container without needing docker-compose
     const child = spawn(
         'docker',
         [
-            'compose',
-            '-f',
-            'docker-compose.terminal.yml',
-            'run',
-            '--rm',
-            '-T',
-            '-e',
-            `TERMINAL_EXEC_CMD=${command}`,
-            '-e',
-            `REAL_UID=${SESSION_REAL_UID}`,
-            '-e',
-            `CORRECT_PC=${SESSION_CORRECT_PC}`,
+            'exec',
+            '-u',
+            'terminal',
             '-e',
             `COMPUTER_ID=${normalizedComputerId}`,
-            'linux-terminal',
+            'flipper-linux-terminal',
+            '/bin/bash',
+            '-c',
+            fullCommand
         ],
         {
             cwd: PROJECT_ROOT,
@@ -67,6 +67,7 @@ function runDockerCommand(command, computerId, callback) {
     });
 
     child.on('close', (code) => {
+        // Filter out noise from stderr
         const filteredStderr = stderr
             .split('\n')
             .filter((line) => {
@@ -81,6 +82,16 @@ function runDockerCommand(command, computerId, callback) {
                     return false;
                 }
                 if (trimmed.startsWith('Image ')) {
+                    return false;
+                }
+                if (trimmed.startsWith('WARN')) {
+                    return false;
+                }
+                if (trimmed.startsWith('time=')) {
+                    return false;
+                }
+                // Filter Docker version mismatch errors
+                if (trimmed.includes('client version') || trimmed.includes('API version') || trimmed.includes('too old')) {
                     return false;
                 }
                 return true;
