@@ -20,6 +20,12 @@ export class BootScene extends Phaser.Scene {
         this.load.image('FlipperRight', 'assets/FlipperRight.png');
         this.load.image('FlipperSelect', 'assets/FlipperSelect.png');
 
+        // --- Load App Icons for Flipper Menu ---
+        this.load.image('sub_ghz', 'assets/sub_ghz.png');
+        this.load.image('125khz_rfid', 'assets/125khz_rfid.png');
+        this.load.image('bad_kb', 'assets/bad_kb.png');
+        this.load.image('nfc', 'assets/nfc.png');
+
         // --- Generate remaining textures procedurally ---
         const gfx = this.add.graphics();
 
