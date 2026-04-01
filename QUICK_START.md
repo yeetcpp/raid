@@ -21,13 +21,13 @@ Your RFID Breach game is now running in Docker with full terminal bridge support
 docker build -t rfid .
 
 # Run with custom flag
-docker run -p 80:80 -p 8787:8787 -e FLAG="CustomFlag@123" rfid
+docker run -p 80:80 -e FLAG="CustomFlag@123" rfid
 
 # Run with default flag
-docker run -p 80:80 -p 8787:8787 rfid
+docker run -p 80:80 rfid
 
 # Run detached with custom flag
-docker run -d -p 80:80 -p 8787:8787 -e FLAG="YourFlagHere" --name rfid-game rfid
+docker run -d -p 80:80 -e FLAG="YourFlagHere" --name rfid-game rfid
 ```
 
 ### Access the Application
@@ -35,8 +35,7 @@ docker run -d -p 80:80 -p 8787:8787 -e FLAG="YourFlagHere" --name rfid-game rfid
 # Open game in browser
 http://localhost
 
-# Terminal bridge API (for debugging)
-http://localhost:8787/session
+# Terminal bridge runs internally (no external access needed)
 ```
 
 ---
@@ -82,7 +81,7 @@ The game flag can be customized at runtime:
 ### Docker Run Method
 ```bash
 # Custom flag
-docker run -p 80:80 -p 8787:8787 -e FLAG="KUBE_FLAG@456" rfid
+docker run -p 80:80 -e FLAG="KUBE_FLAG@456" rfid
 
 # Default flag (if no FLAG env var provided)
 # FLAG="Default @123"
@@ -111,7 +110,7 @@ env:
 
 ### Services in Single Container
 - ✅ **Main Game** - RFID Breach Phaser 3 game on port 80
-- ✅ **Terminal Bridge** - Backend API for in-game terminal on port 8787
+- ✅ **Terminal Bridge** - Backend API for in-game terminal (internal only)
 - ✅ **Flag Injection** - Runtime flag replacement system
 
 ### Files Created
@@ -130,7 +129,7 @@ env:
 2. **Runtime Stage**
    - Uses fresh Node 20-Alpine
    - Installs required packages (bash, wget, etc.)
-   - Starts terminal bridge on port 8787
+   - Starts terminal bridge on port 8787 (internal)
    - Replaces flag placeholder with environment variable
    - Serves game on port 80
 
@@ -161,8 +160,8 @@ docker exec -it CONTAINER_ID /bin/bash
 # Check flag replacement in built files
 docker exec -it CONTAINER_ID grep -r "FLAG" /app/dist/assets/
 
-# Test terminal bridge endpoint
-curl http://localhost:8787/session
+# Test terminal bridge endpoint (internal)
+docker exec -it CONTAINER_ID curl http://localhost:8787/session
 
 # Monitor both services
 docker exec -it CONTAINER_ID ps aux
@@ -185,7 +184,7 @@ npm run preview
 ### Container Testing
 ```bash
 # Build and test quickly
-docker build -t rfid . && docker run -p 80:80 -p 8787:8787 -e FLAG="TestFlag" rfid
+docker build -t rfid . && docker run -p 80:80 -e FLAG="TestFlag" rfid
 
 # Or use docker-compose for full services
 FLAG="DevFlag" docker-compose up --build
@@ -198,9 +197,9 @@ FLAG="DevFlag" docker-compose up --build
 | Port | Service | Description |
 |------|---------|-------------|
 | 80 | Main Game | RFID Breach Phaser 3 application |
-| 8787 | Terminal Bridge | Backend API for in-game Linux terminal |
+| 8787 | Terminal Bridge | Internal API for in-game Linux terminal |
 
-**Important:** Both ports must be exposed for full functionality!
+**Note:** Only port 80 needs to be exposed. Terminal bridge runs internally.
 
 ---
 
@@ -238,14 +237,12 @@ RFID-Breach/
 ## 🐛 Troubleshooting
 
 ### Port Conflicts
-If ports 80 or 8787 are already in use:
+If port 80 is already in use:
 ```bash
-# Use different ports
-docker run -p 8080:80 -p 8788:8787 -e FLAG="CustomFlag" rfid
+# Use different port
+docker run -p 8080:80 -e FLAG="CustomFlag" rfid
 
-# Update URLs accordingly
-# Game: http://localhost:8080
-# Bridge API: http://localhost:8788
+# Game will be available at: http://localhost:8080
 ```
 
 ### Terminal Bridge Not Working
@@ -349,9 +346,9 @@ For detailed technical documentation:
 ## ✅ Quick Checklist
 
 1. ✅ **Build image:** `docker build -t rfid .`
-2. ✅ **Run with flag:** `docker run -p 80:80 -p 8787:8787 -e FLAG="YourFlag" rfid`
+2. ✅ **Run with flag:** `docker run -p 80:80 -e FLAG="YourFlag" rfid`
 3. ✅ **Access game:** http://localhost
-4. ✅ **Verify terminal:** In-game terminal should work (no bridge errors)
+4. ✅ **Verify terminal:** In-game terminal should work (bridge runs internally)
 5. ✅ **Check flag:** Complete the game and verify custom flag appears
 
 ---
