@@ -76,7 +76,11 @@ export class UIScene extends Phaser.Scene {
         this.flipper.setDepth(60);
         this.flipper.setVisible(false);
         this.flipper.setAlpha(0);
-        this.flipper.setY(490 + 100); // Start position below
+        
+        // Dynamic starting position based on dialogue visibility
+        const isDialogueVisible = this.narratorBg.alpha > 0.1;
+        const startY = isDialogueVisible ? 450 : 560;
+        this.flipper.setY(startY + 100); // Start position below
 
         this.inventoryBackdrop = this.add.rectangle(480, 360, 960, 720, 0x06080b, 0.72)
             .setDepth(168)
@@ -220,6 +224,9 @@ export class UIScene extends Phaser.Scene {
             // Show and animate in
             this.flipper.setVisible(true);
 
+            // Update mask with current position before animation
+            this.flipper.updateMask();
+
             console.log('[Flipper] Opening - Creating dim overlay with 0.6 alpha');
 
             // Create fresh dim overlay for this opening
@@ -234,13 +241,21 @@ export class UIScene extends Phaser.Scene {
             // Store reference for closing
             this.flipperDimOverlay = flipperDim;
 
+            // Dynamic positioning based on dialogue visibility
+            const isDialogueVisible = this.narratorBg.alpha > 0.1;
+            const targetY = isDialogueVisible ? 450 : 560; // Higher when dialogue visible, lower when hidden
+
             // Animate Flipper slide up and fade in
             this.tweens.add({
                 targets: this.flipper,
-                y: 490,
+                y: targetY,
                 alpha: 1,
                 duration: 350,
-                ease: 'Back.easeOut'
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    // Update the mask after position change
+                    this.flipper.updateMask();
+                }
             });
 
         } else {
@@ -257,10 +272,14 @@ export class UIScene extends Phaser.Scene {
                 }
             });
 
+            // Dynamic positioning based on dialogue visibility
+            const isDialogueVisible = this.narratorBg.alpha > 0.1;
+            const targetY = isDialogueVisible ? 450 : 560; // Higher when dialogue visible, lower when hidden
+
             // Animate Flipper slide down and fade out
             this.tweens.add({
                 targets: this.flipper,
-                y: 490 + 100,
+                y: targetY + 100, // Slide further down when closing
                 alpha: 0,
                 duration: 300,
                 ease: 'Back.easeIn',
@@ -270,6 +289,28 @@ export class UIScene extends Phaser.Scene {
                 }
             });
         }
+    }
+
+    updateFlipperPosition() {
+        // Only update position if flipper is currently open and visible
+        if (!this.flipperOpen || !this.flipper.visible) {
+            return;
+        }
+
+        const isDialogueVisible = this.narratorBg.alpha > 0.1;
+        const targetY = isDialogueVisible ? 450 : 560;
+
+        // Smoothly animate to new position
+        this.tweens.add({
+            targets: this.flipper,
+            y: targetY,
+            duration: 300,
+            ease: 'Power2.out',
+            onComplete: () => {
+                // Update the mask after position change
+                this.flipper.updateMask();
+            }
+        });
     }
 
     toggleInventory() {
@@ -340,7 +381,11 @@ export class UIScene extends Phaser.Scene {
             alpha: 0.88,
             y: 680,
             duration: 300,
-            ease: 'Power2.out'
+            ease: 'Power2.out',
+            onComplete: () => {
+                // Update flipper position when dialogue becomes visible
+                this.updateFlipperPosition();
+            }
         });
 
         this.tweens.add({
@@ -365,7 +410,11 @@ export class UIScene extends Phaser.Scene {
                 alpha: 0,
                 y: 740, // Slide down slightly
                 duration: 350,
-                ease: 'Power2.in'
+                ease: 'Power2.in',
+                onComplete: () => {
+                    // Update flipper position when dialogue becomes hidden
+                    this.updateFlipperPosition();
+                }
             });
 
             this.tweens.add({
@@ -470,7 +519,8 @@ export class UIScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(true);
 
         // Show FLAG text below - PERSISTENT
-        const flagText = this.add.text(480, 370, 'FLAG: Default @123', {
+        const flagValue = import.meta.env.VITE_FLAG || 'Default @123';
+        const flagText = this.add.text(480, 370, `FLAG: ${flagValue}`, {
             fontFamily: 'monospace',
             fontSize: '32px',
             fill: '#00ff00',

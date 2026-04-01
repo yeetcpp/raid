@@ -912,4 +912,29 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         return content;
     }
+
+    updateMask() {
+        // Recreate the mask with the current container position
+        const maskGraphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Get the container's world transform to calculate proper mask position
+        const worldTransform = this.getWorldTransformMatrix();
+        const containerWorldX = worldTransform.tx;
+        const containerWorldY = worldTransform.ty;
+        
+        const maskX = containerWorldX + this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2 + this.MASK.padding;
+        const maskY = containerWorldY + this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2 + this.MASK.padding;
+        const maskW = this.ORANGE_SCREEN.width - this.MASK.padding * 2;
+        const maskH = this.ORANGE_SCREEN.height - this.MASK.padding * 2;
+        
+        maskGraphics.fillStyle(0xffffff, 1);
+        maskGraphics.fillRoundedRect(maskX, maskY, maskW, maskH, this.ORANGE_SCREEN.radius);
+        
+        // Destroy old mask and apply new one
+        if (this.contentMask) {
+            this.contentMask.destroy();
+        }
+        this.contentMask = maskGraphics.createGeometryMask();
+        this.content.setMask(this.contentMask);
+    }
 }

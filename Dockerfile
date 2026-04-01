@@ -18,6 +18,10 @@ RUN npm install
 # Copy project files
 COPY . .
 
+# Accept FLAG as build argument
+ARG FLAG="Default @123"
+ENV FLAG=${FLAG}
+
 # Build the application
 RUN npm run build
 
