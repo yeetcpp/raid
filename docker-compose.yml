@@ -10,8 +10,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        FLAG: ${FLAG:-Default @123}
     
     # Container name for easy reference
     container_name: flipper-phaser-container
