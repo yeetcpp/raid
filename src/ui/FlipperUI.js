@@ -26,14 +26,17 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         // EASY EDIT SECTION - Adjust positions and sizes here
         // ============================================================
         
+        // Scale factor for entire UI (0.4 = 40% size)
+        const UI_SCALE = 0.65;
+
         // === FONT SIZE SETTINGS - Edit these numbers to change text size ===
         const MAIN_MENU_FONT_SIZE = 26;      // Main app name (125kHz RFID, etc)
         const APP_CONTENT_FONT_SIZE = 35;    // Inner app text (Scan, Saved, Emulate, etc) - SCROLLABLE
         const STATUS_TEXT_FONT_SIZE = 15;    // Bottom status info
         const START_TEXT_FONT_SIZE = 20;     // START button text
-        
-        // Scale factor for entire UI (0.4 = 40% size)
-        const UI_SCALE = 0.65;
+        const MASK_PADDING = 15 * UI_SCALE;   // Inner padding for mask/scroll area
+        const SCROLLBAR_WIDTH = 8 * UI_SCALE; // Scrollbar thickness
+        const SCROLLBAR_PADDING = 10 * UI_SCALE; // Scrollbar inset from edges
         
         // Store all configurations as instance properties for reuse throughout the class
         
@@ -66,11 +69,21 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         // App Content Text Configuration (smaller, left-aligned, TOP of screen)
         // === EDIT APP_CONTENT_FONT_SIZE ABOVE TO CHANGE INNER TEXT SIZE ===
         this.APP_CONTENT_TEXT = {
-            x: -330 * UI_SCALE,        // Horizontal position (left side)
-            y: -220 * UI_SCALE,        // Vertical position (TOP area, very high)
+            x: this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2 + MASK_PADDING, // Left padding
+            y: this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2 + MASK_PADDING, // Top padding
             fontSize: Math.round(APP_CONTENT_FONT_SIZE * UI_SCALE) + 'px',
-            width: 450 * UI_SCALE,     // Text wrap width
+            // Width: mask width minus space for scrollbar
+            width: this.ORANGE_SCREEN.width - (MASK_PADDING * 2) - SCROLLBAR_WIDTH - 10,
             align: 'left'
+        };
+
+        // Mask and scrollbar configuration (editable)
+        this.MASK = { padding: MASK_PADDING };
+        this.SCROLLBAR = {
+            width: SCROLLBAR_WIDTH,
+            padding: SCROLLBAR_PADDING,
+            trackColor: 0x000000,
+            thumbColor: 0x1a1a1a
         };
 
         // App Icons Configuration (main menu) - uses MAIN_MENU_ICON
@@ -150,6 +163,16 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         );
         orangeScreen.setDepth(1);
 
+        // Geometry mask to clip content to the orange screen bounds (not drawn)
+        const maskGraphics = scene.make.graphics({ x: 0, y: 0, add: false });
+        const maskX = this.x + this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2 + this.MASK.padding;
+        const maskY = this.y + this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2 + this.MASK.padding;
+        const maskW = this.ORANGE_SCREEN.width - this.MASK.padding * 2;
+        const maskH = this.ORANGE_SCREEN.height - this.MASK.padding * 2;
+        maskGraphics.fillStyle(0xffffff, 1);
+        maskGraphics.fillRoundedRect(maskX, maskY, maskW, maskH, this.ORANGE_SCREEN.radius);
+        this.contentMask = maskGraphics.createGeometryMask();
+
         // Content text on orange screen - LEFT ARROW
         this.arrowLeft = scene.add.text(this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2 + 30, this.ORANGE_SCREEN.y, '◄', {
             fontFamily: 'monospace',
@@ -167,6 +190,10 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             lineSpacing: 8,
             wordWrap: { width: this.MAIN_MENU_TEXT.width }
         }).setOrigin(0.5, 0.5);
+        this.content.setMask(this.contentMask);
+
+        // Scrollbar graphics (pixelized) - shown only when content overflows
+        this.scrollBar = scene.add.graphics().setVisible(false);
 
         // Content text on orange screen - RIGHT ARROW
         this.arrowRight = scene.add.text(this.ORANGE_SCREEN.x + this.ORANGE_SCREEN.width / 2 - 30, this.ORANGE_SCREEN.y, '►', {
@@ -272,6 +299,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.content,
             this.arrowRight,
             this.appContentBorder,
+            this.scrollBar,
             this.status,
             this.startText,
             this.bruteBarBg,
@@ -510,23 +538,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         if (action === 'up') {
             this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-            // Scroll up based on line count in content
-            const lineHeight = 40; // Approximate line height for 35px font
-            if (this.selectedIndex * lineHeight < this.scrollOffset) {
-                this.scrollOffset = Math.max(0, this.selectedIndex * lineHeight);
-            }
             this.renderMenu();
             return;
         }
 
         if (action === 'down') {
             this.selectedIndex = Math.min(Math.max(entries.length - 1, 0), this.selectedIndex + 1);
-            // Scroll down based on line count
-            const lineHeight = 40; // Approximate line height for 35px font
-            const visibleHeight = this.ORANGE_SCREEN.height - 20; // Leave some margin
-            if ((this.selectedIndex + 1) * lineHeight > this.scrollOffset + visibleHeight) {
-                this.scrollOffset = Math.max(0, (this.selectedIndex + 1) * lineHeight - visibleHeight);
-            }
             this.renderMenu();
             return;
         }
@@ -730,7 +747,11 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             const displayY = this.APP_CONTENT_TEXT.y - this.scrollOffset;
             this.content.setPosition(this.APP_CONTENT_TEXT.x, displayY);
             this.content.setFontSize(this.APP_CONTENT_TEXT.fontSize);
-            this.content.setStyle({ align: this.APP_CONTENT_TEXT.align });
+            this.content.setStyle({ 
+                align: this.APP_CONTENT_TEXT.align,
+                lineSpacing: 4
+            });
+            this.content.setWordWrapWidth(this.APP_CONTENT_TEXT.width);
             this.content.setOrigin(0, 0);
 
             // Hide all icons
@@ -746,6 +767,79 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         }
 
         this.content.setText(content);
+        
+        // Calculate viewport boundaries (pixel-based)
+        const maskTop = this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2 + this.MASK.padding;
+        const maskBottom = this.ORANGE_SCREEN.y + this.ORANGE_SCREEN.height / 2 - this.MASK.padding;
+        const viewportHeight = maskBottom - maskTop;
+        
+        // Calculate scroll for app screen based on selection and content
+        if (this.currentScreen === 'app') {
+            const contentLines = content.split('\n').length;
+            
+            // Calculate ACTUAL line height from rendered content
+            const actualLineHeight = contentLines > 1 ? this.content.height / contentLines : this.content.height;
+
+            // Account for header line: selectedIndex refers to menu items, but text includes header
+            const selectedLineInText = this.selectedIndex + 1;
+
+            // Auto-scroll to keep selection visible (pixel-based)
+            const selectedLineTopPixel = selectedLineInText * actualLineHeight;
+            const selectedLineBottomPixel = (selectedLineInText + 1) * actualLineHeight;
+
+            // If selected line top is above scroll position, scroll up
+            if (selectedLineTopPixel < this.scrollOffset) {
+                this.scrollOffset = Math.max(0, selectedLineTopPixel);
+            }
+            // If selected line bottom goes below visible area, scroll down
+            if (selectedLineBottomPixel > this.scrollOffset + viewportHeight) {
+                this.scrollOffset = selectedLineBottomPixel - viewportHeight;
+            }
+        }
+
+        // STRICT bound checking - text must fit entirely within mask bounds
+        // Maximum scroll is content height minus viewport height
+        const maxScroll = Math.max(0, this.content.height - viewportHeight);
+        this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset, 0, maxScroll);
+        this.maxScrollOffset = maxScroll;
+
+        if (this.currentScreen === 'app') {
+            // Calculate display Y ensuring text stays within mask bounds
+            let displayY = this.APP_CONTENT_TEXT.y - this.scrollOffset;
+            
+            // Text with origin (0,0): Y is the TOP of the text
+            // Top boundary: displayY >= maskTop
+            // Bottom boundary: displayY + content.height <= maskBottom
+            
+            const minY = maskTop; // Text top cannot go above mask top
+            const maxY = maskBottom - this.content.height; // Text bottom cannot go below mask bottom
+            
+            displayY = Phaser.Math.Clamp(displayY, maxY, minY);
+            
+            this.content.setY(displayY);
+            
+            // FORCE crop to ensure no overflow - pixel-level clipping
+            const cropY = Math.max(0, maskTop - displayY); // How much to crop from top
+            const cropHeight = viewportHeight; // Only show viewport height worth of pixels
+            this.content.setCrop(0, cropY, this.APP_CONTENT_TEXT.width, cropY + cropHeight);
+        }
+
+        // Update scrollbar (pixelized) when overflow exists
+        this.scrollBar.clear();
+        const hasOverflow = this.maxScrollOffset > 0;
+        this.scrollBar.setVisible(hasOverflow);
+        if (hasOverflow) {
+            const trackX = this.ORANGE_SCREEN.x + this.ORANGE_SCREEN.width / 2 - this.SCROLLBAR.padding - this.SCROLLBAR.width;
+            const trackY = this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2 + this.SCROLLBAR.padding;
+            const trackH = this.ORANGE_SCREEN.height - this.SCROLLBAR.padding * 2;
+            const thumbH = Math.max(12, trackH * (viewportHeight / (this.content.height || 1)));
+            const thumbY = trackY + (trackH - thumbH) * (this.scrollOffset / (this.maxScrollOffset || 1));
+
+            this.scrollBar.fillStyle(this.SCROLLBAR.trackColor, 0.4);
+            this.scrollBar.fillRect(trackX, trackY, this.SCROLLBAR.width, trackH);
+            this.scrollBar.fillStyle(this.SCROLLBAR.thumbColor, 1);
+            this.scrollBar.fillRect(trackX, thumbY, this.SCROLLBAR.width, thumbH);
+        }
     }
 
     drawAppContentBorder() {
