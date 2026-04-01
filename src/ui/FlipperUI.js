@@ -798,30 +798,18 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         }
 
         // STRICT bound checking - text must fit entirely within mask bounds
-        // Maximum scroll is content height minus viewport height
+        // Small buffer to keep last item visible while preventing extreme overflow
         const maxScroll = Math.max(0, this.content.height - viewportHeight);
         this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset, 0, maxScroll);
         this.maxScrollOffset = maxScroll;
 
         if (this.currentScreen === 'app') {
-            // Calculate display Y ensuring text stays within mask bounds
-            let displayY = this.APP_CONTENT_TEXT.y - this.scrollOffset;
-            
-            // Text with origin (0,0): Y is the TOP of the text
-            // Top boundary: displayY >= maskTop
-            // Bottom boundary: displayY + content.height <= maskBottom
-            
-            const minY = maskTop; // Text top cannot go above mask top
-            const maxY = maskBottom - this.content.height; // Text bottom cannot go below mask bottom
-            
-            displayY = Phaser.Math.Clamp(displayY, maxY, minY);
-            
+            // Simply apply scroll offset to Y position
+            const displayY = this.APP_CONTENT_TEXT.y - this.scrollOffset;
             this.content.setY(displayY);
             
-            // FORCE crop to ensure no overflow - pixel-level clipping
-            const cropY = Math.max(0, maskTop - displayY); // How much to crop from top
-            const cropHeight = viewportHeight; // Only show viewport height worth of pixels
-            this.content.setCrop(0, cropY, this.APP_CONTENT_TEXT.width, cropY + cropHeight);
+            // Crop to viewport to ensure no overflow
+            this.content.setCrop(0, this.scrollOffset, this.APP_CONTENT_TEXT.width, viewportHeight);
         }
 
         // Update scrollbar (pixelized) when overflow exists
@@ -879,13 +867,13 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                         const signal = savedSignals.find((entry) => entry.uid === uid);
                         const prefix = index === this.selectedIndex ? '► ' : '  ';
                         const activeMarker = (active && active.uid === uid) ? ' ★' : '';
-                        let line = `\n${prefix}${uid}${activeMarker}`;
+                        let line = `${prefix}${uid}${activeMarker}`;
                         if (signal) {
                             line += ` L${signal.clearance}`;
                         }
                         return line;
                     })
-                    .join('');
+                    .join('\n');
             }
         } else if (this.appSubScreen === 'emulate') {
             const entries = this.getRFIDEntries();
@@ -899,18 +887,18 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                     .map((uid, index) => {
                         if (uid === 'Add ID') {
                             const prefix = index === this.selectedIndex ? '► ' : '  ';
-                            return `\n${prefix}${uid}`;
+                            return `${prefix}${uid}`;
                         }
                         const signal = savedSignals.find((entry) => entry.uid === uid);
                         const prefix = index === this.selectedIndex ? '► ' : '  ';
                         const activeMarker = (active && active.uid === uid) ? ' ★' : '';
-                        let line = `\n${prefix}${uid}${activeMarker}`;
+                        let line = `${prefix}${uid}${activeMarker}`;
                         if (signal) {
                             line += ` L${signal.clearance}`;
                         }
                         return line;
                     })
-                    .join('');
+                    .join('\n');
             }
         } else if (this.appSubScreen === 'add_id') {
             content = 'ENTER UID:\n';
