@@ -12,30 +12,33 @@ export class UIScene extends Phaser.Scene {
         this.inventoryOpen = false;
         this.gameOver = false;
 
-        const hudTop = this.add.rectangle(480, 30, 960, 51, 0x0f151b, 0.8)
+        const hudTop = this.add.rectangle(480, 25, 800, 40, 0x0f151b, 0.8)
             .setOrigin(0.5)
             .setStrokeStyle(1, 0x476472, 0.8);
 
-        this.zoneText = this.add.text(18, 10, 'ZONE: CLASSROOM', {
+        this.zoneText = this.add.text(100, 15, 'ZONE: CLASSROOM', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#c5e6dd'
-        });
+        }).setOrigin(0, 0.5);
 
-        this.activeText = this.add.text(260, 10, 'ACTIVE UID: UID_STU_10A', {
+        this.activeText = this.add.text(350, 15, 'ACTIVE UID: UID_STU_10A', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#b9d9e2'
-        });
+        }).setOrigin(0, 0.5);
 
-        this.heatLabel = this.add.text(560, 10, 'HEAT', {
+        // Removed flagText from status bar - now only shown in celebration screen
+        // this.flagText is now used only in the celebration overlay
+
+        this.heatLabel = this.add.text(680, 15, 'HEAT', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#dfb788'
-        });
+        }).setOrigin(0, 0.5);
 
-        this.heatBarBg = this.add.rectangle(610, 23, 170, 8, 0x20252b, 1).setOrigin(0, 0);
-        this.heatBarFill = this.add.rectangle(610, 23, 0, 8, 0x87c77d, 1).setOrigin(0, 0);
+        this.heatBarBg = this.add.rectangle(720, 11, 140, 8, 0x20252b, 1).setOrigin(0, 0);
+        this.heatBarFill = this.add.rectangle(720, 11, 0, 8, 0x87c77d, 1).setOrigin(0, 0);
 
         this.narratorBg = this.add.rectangle(480, 680, 920, 120, 0x111923, 0.88)
             .setOrigin(0.5)
@@ -49,19 +52,25 @@ export class UIScene extends Phaser.Scene {
             wordWrap: { width: 920 }
         }).setAlpha(0); // Initially hidden
 
-        this.controlHintsText = this.add.text(480, 700, '[WASD] MOVE  [E] INTERACT  [F] FLIPPER  [I] INVENTORY', {
+        this.controlHintsText = this.add.text(480, 700, '[WASD] MOVE  [E] INTERACT', {
             fontFamily: 'monospace',
             fontSize: '11px',
-            fill: '#6a8792'
+            fill: '#ffffff'
         }).setOrigin(0.5).setAlpha(0); // Initially hidden
 
-        // Create a simple black dimming overlay (lower depth than flipper)
-        this.flipperDimOverlay = this.add.rectangle(480, 360, 960, 720, 0x000000, 0)
-            .setDepth(25)
-            .setScrollFactor(0)
-            .setOrigin(0.5, 0.5)
-            .setVisible(false);
+        const flipperHintBox = this.add.rectangle(25, 705, 140, 30, 0x1a242d, 0.9)
+            .setOrigin(0, 0.5)
+            .setStrokeStyle(1, 0x5a7a87, 0.8);
 
+        this.flipperHintText = this.add.text(30, 705, '[F] FLIPPER UI', {
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            fill: '#ffffff'
+        }).setOrigin(0, 0.5);
+
+        // Setup Flipper UI (non-functional placeholder)
+        // Real flipper overlay is created dynamically in toggleFlipper()
+        
         this.flipper = new FlipperUI(this, 480, 420);
         this.flipper.setScale(1);
         this.flipper.setDepth(60);
@@ -108,6 +117,11 @@ export class UIScene extends Phaser.Scene {
 
         rfidSystem.on('game-win', (reason) => this.showGameEnd(true, reason));
         rfidSystem.on('game-lose', () => this.showGameEnd(false));
+
+        gameScene.events.on('director-room-accessed', () => {
+            console.log('[UIScene] director-room-accessed event received!');
+            this.showDirectorRoomCelebration();
+        }, this);
 
         this.renderHeat(rfidSystem.heat, rfidSystem.maxHeat);
         this.renderActiveSignal(rfidSystem.getActiveSignal());
@@ -205,15 +219,20 @@ export class UIScene extends Phaser.Scene {
 
             // Show and animate in
             this.flipper.setVisible(true);
-            this.flipperDimOverlay.setVisible(true);
 
-            // Animate dim overlay fade in
-            this.tweens.add({
-                targets: this.flipperDimOverlay,
-                alpha: { from: 0, to: 0.4 },
-                duration: 300,
-                ease: 'Power2.out'
-            });
+            console.log('[Flipper] Opening - Creating dim overlay with 0.6 alpha');
+
+            // Create fresh dim overlay for this opening
+            const flipperDim = this.add.rectangle(480, 360, 960, 720, 0x000000, 0.6)
+                .setDepth(50)
+                .setScrollFactor(0)
+                .setOrigin(0.5, 0.5)
+                .setVisible(true);
+
+            console.log('[Flipper] Overlay created with immediate alpha 0.6');
+
+            // Store reference for closing
+            this.flipperDimOverlay = flipperDim;
 
             // Animate Flipper slide up and fade in
             this.tweens.add({
@@ -225,14 +244,16 @@ export class UIScene extends Phaser.Scene {
             });
 
         } else {
-            // Animate dim overlay fade out
+            // Animate dim overlay fade out and destroy
+            console.log('[Flipper] Closing - Fading dim overlay from 0.6 to 0');
             this.tweens.add({
                 targets: this.flipperDimOverlay,
-                alpha: { from: 0.4, to: 0 },
+                alpha: 0,
                 duration: 250,
                 ease: 'Power2.in',
                 onComplete: () => {
-                    this.flipperDimOverlay.setVisible(false);
+                    this.flipperDimOverlay.destroy();
+                    console.log('[Flipper] Dim overlay destroyed');
                 }
             });
 
@@ -426,5 +447,91 @@ export class UIScene extends Phaser.Scene {
             this.scene.stop('GameScene');
             this.scene.start('GameScene');
         });
+    }
+
+    showDirectorRoomCelebration() {
+        // Show persistent dim overlay
+        console.log('[Celebration] Starting director room celebration!');
+        
+        const dimOverlay = this.add.rectangle(480, 360, 960, 720, 0x000000, 0.5)
+            .setDepth(480)
+            .setScrollFactor(0)
+            .setOrigin(0.5, 0.5)
+            .setVisible(true);
+
+        console.log('[Celebration] Dim overlay created with immediate alpha 0.5');
+
+        // Show "ACCESS GRANTED!!" message - PERSISTENT
+        const grantedText = this.add.text(480, 280, 'ACCESS GRANTED!!', {
+            fontFamily: 'monospace',
+            fontSize: '56px',
+            fill: '#8ad989',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(true);
+
+        // Show FLAG text below - PERSISTENT
+        const flagText = this.add.text(480, 370, 'FLAG: Default @123', {
+            fontFamily: 'monospace',
+            fontSize: '32px',
+            fill: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(true);
+
+        console.log('[Celebration] Both texts created and persistent');
+
+        // Fade in and scale animation
+        grantedText.setAlpha(0).setScale(0.5);
+        flagText.setAlpha(0).setScale(0.5);
+        
+        this.tweens.add({
+            targets: [grantedText, flagText],
+            alpha: 1,
+            scale: 1,
+            duration: 500,
+            ease: 'Back.easeOut',
+            onStart: () => {
+                console.log('[Celebration] Texts fade-in animation started');
+            }
+        });
+
+        // Create confetti particles
+        this.createConfetti();
+    }
+
+    createConfetti() {
+        console.log('[Confetti] Starting confetti animation!');
+        const confettiCount = 80;
+        const confettiColors = [0xff6b9d, 0xa8d8ff, 0xffd93d, 0x6bcf7f, 0xff8c42, 0xa78bfa, 0xff4757];
+
+        for (let i = 0; i < confettiCount; i++) {
+            const startX = Phaser.Math.Between(50, 910);
+            const startY = -30;
+            const endX = startX + Phaser.Math.Between(-250, 250);
+            const endY = 750;
+            const color = confettiColors[Phaser.Math.Between(0, confettiColors.length - 1)];
+            const size = Phaser.Math.Between(4, 10);
+            const duration = Phaser.Math.Between(2500, 4000);
+            const delay = Phaser.Math.Between(0, 200);
+
+            const particle = this.add.rectangle(startX, startY, size, size, color, 1)
+                .setDepth(499)
+                .setScrollFactor(0)
+                .setVisible(true);
+
+            this.tweens.add({
+                targets: particle,
+                x: endX,
+                y: endY,
+                rotation: Phaser.Math.Between(-Math.PI * 2, Math.PI * 2),
+                alpha: 0,
+                duration: duration,
+                delay: delay,
+                ease: 'Power1.in',
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+        console.log('[Confetti] Created', confettiCount, 'particles');
     }
 }

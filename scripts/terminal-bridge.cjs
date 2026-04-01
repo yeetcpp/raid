@@ -164,7 +164,10 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        runDockerCommand(command, computerId, (error, result) => {
+        // Ensure files are generated for this specific computer before running the command
+        const generateFilesCmd = `/setup/generate_files.sh && ${command}`;
+
+        runDockerCommand(generateFilesCmd, computerId, (error, result) => {
             if (error) {
                 writeJson(res, 500, {
                     error: 'Failed to execute docker command',

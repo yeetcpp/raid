@@ -49,6 +49,8 @@ export class GameScene extends Phaser.Scene {
         // Initialize terminal UI
         this.terminalUI = new TerminalUI(this);
         this.playerMovementEnabled = true;
+        this.l3DoorCelebrationShown = false; // Track if L3 door celebration was shown
+        this.directorRoomEntryCelebrationShown = false; // Track if director room entry celebration was shown
 
         // Handle terminal open/close events
         this.events.on('terminal-opened', () => {
@@ -260,15 +262,18 @@ export class GameScene extends Phaser.Scene {
 
     buildZones() {
         this.zones = [
+            { id: 'Locker Room', rect: new Phaser.Geom.Rectangle(0, 0, 200, 300) },
             { id: 'Classroom', rect: new Phaser.Geom.Rectangle(20, 20, 960, 190) },
             { id: 'Hub', rect: new Phaser.Geom.Rectangle(210, 220, 620, 280) },
             { id: 'Office', rect: new Phaser.Geom.Rectangle(560, 520, 360, 240) },
+            { id: 'Director Room', rect: new Phaser.Geom.Rectangle(820, 550, 260, 370) },
             // Actual server room footprint (left-bottom lab), not the whole lower map.
             { id: 'Server Room', rect: new Phaser.Geom.Rectangle(0, 520, 340, 390) },
             { id: 'Staff Corridor', rect: new Phaser.Geom.Rectangle(430, 470, 230, 380) }
         ];
 
         this.serverRoomRect = this.zones.find((zone) => zone.id === 'Server Room')?.rect || null;
+        this.directorRoomRect = this.zones.find((zone) => zone.id === 'Director Room')?.rect || null;
     }
 
     buildServerEntryBarrier() {
@@ -515,6 +520,20 @@ export class GameScene extends Phaser.Scene {
             this.currentZoneId = currentZone.id;
             this.events.emit('zone-updated', currentZone.id);
             this.player.setCurrentZone(currentZone.id.toLowerCase());
+
+            // Trigger celebration when entering Director Room with L3 access and door is open
+            if (currentZone.id === 'Director Room' && !this.directorRoomEntryCelebrationShown) {
+                const active = rfidSystem.getActiveSignal();
+                const hasL3Access = active && active.clearance >= 3;
+
+                console.log('[GameScene] Director Room Check:', { hasL3Access, shown: this.directorRoomEntryCelebrationShown });
+
+                if (hasL3Access) {
+                    console.log('[GameScene] Emitting director-room-accessed event!');
+                    this.directorRoomEntryCelebrationShown = true;
+                    this.events.emit('director-room-accessed');
+                }
+            }
         }
     }
 
@@ -639,6 +658,15 @@ export class GameScene extends Phaser.Scene {
                 }
 
                 console.log(`[Door] ${door.id} unlocked with L${door.clearance} access`);
+
+                // Trigger celebration for L3 door unlock
+                if (door.id === 'director_room_door' && !this.l3DoorCelebrationShown) {
+                    this.l3DoorCelebrationShown = true;
+                    const uiScene = this.scene.get('UIScene');
+                    if (uiScene) {
+                        uiScene.events.emit('director-room-accessed');
+                    }
+                }
 
                 // Set animating to false when animation completes
                 door.sprite.once('animationcomplete', () => {
