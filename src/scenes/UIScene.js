@@ -12,17 +12,17 @@ export class UIScene extends Phaser.Scene {
         this.inventoryOpen = false;
         this.gameOver = false;
 
-        const hudTop = this.add.rectangle(480, 25, 800, 40, 0x0f151b, 0.8)
+        const hudTop = this.add.rectangle(480, 18, 800, 28, 0x0f151b, 0.8)
             .setOrigin(0.5)
             .setStrokeStyle(1, 0x476472, 0.8);
 
-        this.zoneText = this.add.text(100, 15, 'ZONE: CLASSROOM', {
+        this.zoneText = this.add.text(100, 18, 'ZONE: CLASSROOM', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#c5e6dd'
         }).setOrigin(0, 0.5);
 
-        this.activeText = this.add.text(350, 15, 'ACTIVE UID: UID_STU_10A', {
+        this.activeText = this.add.text(350, 18, 'ACTIVE UID: UID_STU_10A', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#b9d9e2'
@@ -31,14 +31,14 @@ export class UIScene extends Phaser.Scene {
         // Removed flagText from status bar - now only shown in celebration screen
         // this.flagText is now used only in the celebration overlay
 
-        this.heatLabel = this.add.text(680, 15, 'HEAT', {
+        this.heatLabel = this.add.text(680, 18, 'HEAT', {
             fontFamily: 'monospace',
             fontSize: '12px',
             fill: '#dfb788'
         }).setOrigin(0, 0.5);
 
-        this.heatBarBg = this.add.rectangle(720, 11, 140, 8, 0x20252b, 1).setOrigin(0, 0);
-        this.heatBarFill = this.add.rectangle(720, 11, 0, 8, 0x87c77d, 1).setOrigin(0, 0);
+        this.heatBarBg = this.add.rectangle(720, 15, 140, 7, 0x20252b, 1).setOrigin(0, 0);
+        this.heatBarFill = this.add.rectangle(720, 15, 0, 7, 0x87c77d, 1).setOrigin(0, 0);
 
         this.narratorBg = this.add.rectangle(480, 680, 920, 120, 0x111923, 0.88)
             .setOrigin(0.5)
@@ -71,12 +71,12 @@ export class UIScene extends Phaser.Scene {
         // Setup Flipper UI (non-functional placeholder)
         // Real flipper overlay is created dynamically in toggleFlipper()
         
-        this.flipper = new FlipperUI(this, 480, 420);
+        this.flipper = new FlipperUI(this, 480, 490);
         this.flipper.setScale(1);
         this.flipper.setDepth(60);
         this.flipper.setVisible(false);
         this.flipper.setAlpha(0);
-        this.flipper.setY(420 + 100); // Start position below
+        this.flipper.setY(490 + 100); // Start position below
 
         this.inventoryBackdrop = this.add.rectangle(480, 360, 960, 720, 0x06080b, 0.72)
             .setDepth(168)
@@ -237,7 +237,7 @@ export class UIScene extends Phaser.Scene {
             // Animate Flipper slide up and fade in
             this.tweens.add({
                 targets: this.flipper,
-                y: 420,
+                y: 490,
                 alpha: 1,
                 duration: 350,
                 ease: 'Back.easeOut'
@@ -260,7 +260,7 @@ export class UIScene extends Phaser.Scene {
             // Animate Flipper slide down and fade out
             this.tweens.add({
                 targets: this.flipper,
-                y: 420 + 100,
+                y: 490 + 100,
                 alpha: 0,
                 duration: 300,
                 ease: 'Back.easeIn',
