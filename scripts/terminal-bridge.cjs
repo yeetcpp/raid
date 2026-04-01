@@ -13,6 +13,9 @@ function generateUid() {
 const SESSION_REAL_UID = generateUid();
 const SESSION_CORRECT_PC = String(crypto.randomInt(1, 7));
 
+console.log(`[terminal-bridge] Session UID: ${SESSION_REAL_UID}`);
+console.log(`[terminal-bridge] Correct PC: ${SESSION_CORRECT_PC}`);
+
 function writeJson(res, statusCode, payload) {
     res.writeHead(statusCode, {
         'Content-Type': 'application/json',
@@ -28,7 +31,7 @@ function runDockerCommand(command, computerId, callback) {
 
     // Compose command that runs with restricted PATH and as terminal user
     // This ensures proper environment isolation
-    const fullCommand = `export PATH="/usr/local/restricted/bin" HOME="/home/player" COMPUTER_ID="${normalizedComputerId}"; source /home/player/.bashrc 2>/dev/null; ${command}`;
+    const fullCommand = `export PATH="/usr/local/restricted/bin" HOME="/home/player" COMPUTER_ID="${normalizedComputerId}" REAL_UID="${SESSION_REAL_UID}" CORRECT_PC="${SESSION_CORRECT_PC}"; source /home/player/.bashrc 2>/dev/null; ${command}`;
 
     // Use docker exec directly to run command in the running container
     // This works inside the bridge container without needing docker-compose
@@ -40,6 +43,10 @@ function runDockerCommand(command, computerId, callback) {
             'terminal',
             '-e',
             `COMPUTER_ID=${normalizedComputerId}`,
+            '-e',
+            `REAL_UID=${SESSION_REAL_UID}`,
+            '-e',
+            `CORRECT_PC=${SESSION_CORRECT_PC}`,
             'flipper-linux-terminal',
             '/bin/bash',
             '-c',
@@ -106,10 +113,19 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') {
         res.writeHead(204, {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         });
         res.end();
+        return;
+    }
+
+    // Session endpoint - returns the randomized UID and correct PC for this session
+    if (req.url === '/session' && req.method === 'GET') {
+        writeJson(res, 200, {
+            realUid: SESSION_REAL_UID,
+            correctPc: SESSION_CORRECT_PC
+        });
         return;
     }
 
@@ -177,5 +193,7 @@ server.on('error', (error) => {
 
 server.listen(PORT, () => {
     console.log(`[terminal-bridge] listening on http://localhost:${PORT}`);
-    console.log('[terminal-bridge] endpoint: POST /execute { command: "ls", computerId: 1 }');
+    console.log('[terminal-bridge] endpoints:');
+    console.log('  - GET  /session  (returns { realUid, correctPc })');
+    console.log('  - POST /execute  { command: "ls", computerId: 1 }');
 });

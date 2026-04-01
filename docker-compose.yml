@@ -131,7 +131,10 @@ services:
     tty: true
     command: /bin/bash -c "trap 'exit 0' SIGTERM; /bin/sleep infinity"
     environment:
-      REAL_UID: ${REAL_UID:-FF:AA:BB:CC:DD:EE}
+      # Note: REAL_UID and CORRECT_PC are dynamically set by terminal-bridge
+      # for commands executed via /execute endpoint (randomized per session).
+      # These defaults are only used for manual container execution.
+      REAL_UID: ${REAL_UID:-00:11:22:33:44:55}
       CORRECT_PC: ${CORRECT_PC:-1}
       COMPUTER_ID: ${COMPUTER_ID:-1}
     

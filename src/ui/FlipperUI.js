@@ -27,7 +27,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         // ============================================================
         
         // Scale factor for entire UI (0.4 = 40% size)
-        const UI_SCALE = 0.65;
+        const UI_SCALE = 0.35;
 
         // === FONT SIZE SETTINGS - Edit these numbers to change text size ===
         const MAIN_MENU_FONT_SIZE = 26;      // Main app name (125kHz RFID, etc)

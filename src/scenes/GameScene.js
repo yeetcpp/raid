@@ -354,16 +354,15 @@ export class GameScene extends Phaser.Scene {
             fill: '#9ed0db'
         };
 
-        const officeBadge = this.add.rectangle(697, 554, 22, 12, 0x487ebf, 0.95).setDepth(17);
-        const officeBadgeLabel = this.add.text(697, 536, 'STAFF DESK L2 CARD', sourceStyle).setOrigin(0.5).setDepth(18);
+        const officeBadge = this.add.image(697, 550, 'L2Card').setScale(0.075).setDepth(17);
         this.signalSources.push({
             kind: 'source',
             sourceId: 'OFFICE_L2_BADGE',
             x: 697,
-            y: 554,
-            radius: 220,  // Increased from 56 to 220 for better detection range
+            y: 550,
+            radius: 100,  // Increased from 56 to 220 for better detection range
             visual: officeBadge,
-            label: officeBadgeLabel,
+            label: null,
             prompt: null
         });
 

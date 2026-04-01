@@ -31,6 +31,9 @@ export class BootScene extends Phaser.Scene {
         this.load.image('bad_kb', 'assets/bad_kb.png');
         this.load.image('nfc', 'assets/nfc.png');
 
+        // --- Load Physical Items ---
+        this.load.image('L2Card', 'assets/L2Card.png');
+
         // --- Generate remaining textures procedurally ---
         const gfx = this.add.graphics();
 

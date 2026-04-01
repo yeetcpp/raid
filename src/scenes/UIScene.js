@@ -12,7 +12,7 @@ export class UIScene extends Phaser.Scene {
         this.inventoryOpen = false;
         this.gameOver = false;
 
-        const hudTop = this.add.rectangle(513, 30, 1000, 51, 0x0f151b, 0.8)
+        const hudTop = this.add.rectangle(480, 30, 960, 51, 0x0f151b, 0.8)
             .setOrigin(0.5)
             .setStrokeStyle(1, 0x476472, 0.8);
 
@@ -37,41 +37,43 @@ export class UIScene extends Phaser.Scene {
         this.heatBarBg = this.add.rectangle(610, 23, 170, 8, 0x20252b, 1).setOrigin(0, 0);
         this.heatBarFill = this.add.rectangle(610, 23, 0, 8, 0x87c77d, 1).setOrigin(0, 0);
 
-        this.narratorBg = this.add.rectangle(513, 975, 980, 117, 0x111923, 0.88)
+        this.narratorBg = this.add.rectangle(480, 680, 920, 120, 0x111923, 0.88)
             .setOrigin(0.5)
             .setStrokeStyle(2, 0x6daab6, 0.9)
-            .setAlpha(0); // Initially hidden and slightly below final position
+            .setAlpha(0); // Initially hidden
 
-        this.narratorText = this.add.text(30, 945, '', {
+        this.narratorText = this.add.text(30, 650, '', {
             fontFamily: 'monospace',
             fontSize: '14px',
             fill: '#d5ebe8',
             wordWrap: { width: 920 }
-        }).setAlpha(0); // Initially hidden and slightly below final position
+        }).setAlpha(0); // Initially hidden
 
-        this.controlHintsText = this.add.text(513, 995, '[WASD] MOVE  [E] INTERACT  [F] FLIPPER  [I] INVENTORY', {
+        this.controlHintsText = this.add.text(480, 700, '[WASD] MOVE  [E] INTERACT  [F] FLIPPER  [I] INVENTORY', {
             fontFamily: 'monospace',
             fontSize: '11px',
             fill: '#6a8792'
         }).setOrigin(0.5).setAlpha(0); // Initially hidden
 
-        // Flipper backdrop (dim background when Flipper is open)
-        this.flipperBackdrop = this.add.rectangle(513, 512, 1026, 1024, 0x000000, 0)
-            .setDepth(50)
+        // Create a simple black dimming overlay (lower depth than flipper)
+        this.flipperDimOverlay = this.add.rectangle(480, 360, 960, 720, 0x000000, 0)
+            .setDepth(25)
+            .setScrollFactor(0)
+            .setOrigin(0.5, 0.5)
             .setVisible(false);
 
-        this.flipper = new FlipperUI(this, 513, 705);
-        this.flipper.setScale(0.58);
+        this.flipper = new FlipperUI(this, 480, 420);
+        this.flipper.setScale(1);
         this.flipper.setDepth(60);
         this.flipper.setVisible(false);
         this.flipper.setAlpha(0);
-        this.flipper.setY(705 + 100); // Start position below
+        this.flipper.setY(420 + 100); // Start position below
 
-        this.inventoryBackdrop = this.add.rectangle(513, 512, 1026, 1024, 0x06080b, 0.72)
+        this.inventoryBackdrop = this.add.rectangle(480, 360, 960, 720, 0x06080b, 0.72)
             .setDepth(168)
             .setVisible(false);
 
-        this.inventory = this.add.container(513, 512);
+        this.inventory = this.add.container(480, 360);
         this.buildInventory();
         this.inventory.setVisible(false);
         this.inventory.setDepth(170);
@@ -203,12 +205,12 @@ export class UIScene extends Phaser.Scene {
 
             // Show and animate in
             this.flipper.setVisible(true);
-            this.flipperBackdrop.setVisible(true);
+            this.flipperDimOverlay.setVisible(true);
 
-            // Animate backdrop fade in
+            // Animate dim overlay fade in
             this.tweens.add({
-                targets: this.flipperBackdrop,
-                alpha: 0.5,
+                targets: this.flipperDimOverlay,
+                alpha: { from: 0, to: 0.4 },
                 duration: 300,
                 ease: 'Power2.out'
             });
@@ -216,28 +218,28 @@ export class UIScene extends Phaser.Scene {
             // Animate Flipper slide up and fade in
             this.tweens.add({
                 targets: this.flipper,
-                y: 705,
+                y: 420,
                 alpha: 1,
                 duration: 350,
                 ease: 'Back.easeOut'
             });
 
         } else {
-            // Animate backdrop fade out
+            // Animate dim overlay fade out
             this.tweens.add({
-                targets: this.flipperBackdrop,
-                alpha: 0,
+                targets: this.flipperDimOverlay,
+                alpha: { from: 0.4, to: 0 },
                 duration: 250,
                 ease: 'Power2.in',
                 onComplete: () => {
-                    this.flipperBackdrop.setVisible(false);
+                    this.flipperDimOverlay.setVisible(false);
                 }
             });
 
             // Animate Flipper slide down and fade out
             this.tweens.add({
                 targets: this.flipper,
-                y: 705 + 100,
+                y: 420 + 100,
                 alpha: 0,
                 duration: 300,
                 ease: 'Back.easeIn',
@@ -315,7 +317,7 @@ export class UIScene extends Phaser.Scene {
         this.tweens.add({
             targets: this.narratorBg,
             alpha: 0.88,
-            y: 950,
+            y: 680,
             duration: 300,
             ease: 'Power2.out'
         });
@@ -323,7 +325,7 @@ export class UIScene extends Phaser.Scene {
         this.tweens.add({
             targets: this.narratorText,
             alpha: 1,
-            y: 920,
+            y: 650,
             duration: 300,
             ease: 'Power2.out'
         });
@@ -340,7 +342,7 @@ export class UIScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.narratorBg,
                 alpha: 0,
-                y: 975, // Slide down slightly
+                y: 740, // Slide down slightly
                 duration: 350,
                 ease: 'Power2.in'
             });
@@ -348,7 +350,7 @@ export class UIScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.narratorText,
                 alpha: 0,
-                y: 945, // Slide down slightly
+                y: 710, // Slide down slightly
                 duration: 350,
                 ease: 'Power2.in'
             });
@@ -390,23 +392,23 @@ export class UIScene extends Phaser.Scene {
         this.inventory.setVisible(false);
         this.scene.pause('GameScene');
 
-        const overlay = this.add.rectangle(513, 512, 1026, 1024, 0x000000, 0.88).setDepth(250);
+        const overlay = this.add.rectangle(480, 360, 960, 720, 0x000000, 0.88).setDepth(250);
 
-        const title = this.add.text(513, 380, isWin ? 'SERVER ACCESS UNLOCKED' : 'LOCKDOWN', {
+        const title = this.add.text(480, 240, isWin ? 'SERVER ACCESS UNLOCKED' : 'LOCKDOWN', {
             fontFamily: 'monospace',
             fontSize: '46px',
             fill: isWin ? '#8ad989' : '#ef7e74',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(251);
 
-        const subtitle = this.add.text(513, 485, isWin ? `Method: ${reason}` : 'Heat reached maximum. All scanners disabled.', {
+        const subtitle = this.add.text(480, 340, isWin ? `Method: ${reason}` : 'Heat reached maximum. All scanners disabled.', {
             fontFamily: 'monospace',
             fontSize: '18px',
             fill: isWin ? '#bde8bc' : '#e8afa9',
             align: 'center'
         }).setOrigin(0.5).setDepth(251);
 
-        const prompt = this.add.text(513, 650, '[R] RESTART', {
+        const prompt = this.add.text(480, 500, '[R] RESTART', {
             fontFamily: 'monospace',
             fontSize: '18px',
             fill: '#c7dce1'
