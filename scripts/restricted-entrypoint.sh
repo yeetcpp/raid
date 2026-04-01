@@ -124,10 +124,90 @@ set -eu
 printf '\033c'
 EOF
 
+    cat > "$RESTRICTED_BIN/od" << 'EOF'
+#!/bin/sh
+set -eu
+exec /usr/bin/od "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/tr" << 'EOF'
+#!/bin/sh
+set -eu
+exec /usr/bin/tr "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/sed" << 'EOF'
+#!/bin/sh
+set -eu
+exec /bin/sed "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/date" << 'EOF'
+#!/bin/sh
+set -eu
+exec /bin/date "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/rm" << 'EOF'
+#!/bin/sh
+set -eu
+for arg in "$@"; do
+    case "$arg" in
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
+            echo "Access denied" >&2
+            exit 1
+            ;;
+    esac
+done
+exec /bin/rm "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/chown" << 'EOF'
+#!/bin/sh
+set -eu
+for arg in "$@"; do
+    case "$arg" in
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
+            echo "Access denied" >&2
+            exit 1
+            ;;
+    esac
+done
+exec /bin/chown "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/chmod" << 'EOF'
+#!/bin/sh
+set -eu
+for arg in "$@"; do
+    case "$arg" in
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
+            echo "Access denied" >&2
+            exit 1
+            ;;
+    esac
+done
+exec /bin/chmod "$@"
+EOF
+
+    cat > "$RESTRICTED_BIN/mkdir" << 'EOF'
+#!/bin/sh
+set -eu
+for arg in "$@"; do
+    case "$arg" in
+        /root|/root/*|/etc|/etc/*|/sys|/sys/*|/proc|/proc/*|/var|/var/*|/boot|/boot/*|../*|*/../*|*/..*/*|root|*docker*|*sudo*)
+            echo "Access denied" >&2
+            exit 1
+            ;;
+    esac
+done
+exec /bin/mkdir "$@"
+EOF
+
     cat > "$RESTRICTED_BIN/help" << 'EOF'
 #!/bin/sh
 set -eu
-printf '%s\n' 'Allowed commands: ls cat pwd whoami uname echo clear help sudo exit'
+printf '%s\n' 'Allowed commands: ls cat pwd whoami uname echo clear help mkdir rm chown chmod od tr sed date sudo exit'
 printf '%s\n' 'Notes: absolute paths, /root, package managers, and download tools are blocked.'
 EOF
 

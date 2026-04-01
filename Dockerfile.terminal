@@ -58,7 +58,7 @@ RUN mkdir -p /home/player/files /setup && chown -R terminal:terminal /home/playe
 
 RUN mkdir -p /etc/sudoers.d && \
     printf '%s\n' 'Defaults:terminal secure_path="/usr/local/restricted/bin"' > /etc/sudoers.d/terminal && \
-    printf '%s\n' 'Cmnd_Alias SAFE = /usr/local/restricted/bin/ls, /usr/local/restricted/bin/cat, /usr/local/restricted/bin/pwd, /usr/local/restricted/bin/whoami, /usr/local/restricted/bin/uname, /usr/local/restricted/bin/echo, /usr/local/restricted/bin/clear, /usr/local/restricted/bin/help' >> /etc/sudoers.d/terminal && \
+    printf '%s\n' 'Cmnd_Alias SAFE = /usr/local/restricted/bin/ls, /usr/local/restricted/bin/cat, /usr/local/restricted/bin/pwd, /usr/local/restricted/bin/whoami, /usr/local/restricted/bin/uname, /usr/local/restricted/bin/echo, /usr/local/restricted/bin/clear, /usr/local/restricted/bin/help, /usr/local/restricted/bin/mkdir, /usr/local/restricted/bin/rm, /usr/local/restricted/bin/chown, /usr/local/restricted/bin/chmod, /usr/local/restricted/bin/od, /usr/local/restricted/bin/tr, /usr/local/restricted/bin/sed, /usr/local/restricted/bin/date' >> /etc/sudoers.d/terminal && \
     printf '%s\n' 'terminal ALL=(ALL) NOPASSWD: SAFE' >> /etc/sudoers.d/terminal && \
     chmod 0440 /etc/sudoers.d/terminal
 
