@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 // ===== CHARACTER SIZE CONFIGURATION =====
 // Adjust this value to change the character size
 // Default: 0.6 (recommended range: 0.4 - 1.0)
-const CHARACTER_SCALE = 0.8;
+const CHARACTER_SCALE = 0.9;
 // ========================================
 
 export class Player extends Phaser.Physics.Arcade.Sprite {

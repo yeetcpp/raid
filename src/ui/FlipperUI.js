@@ -32,7 +32,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         // === FONT SIZE SETTINGS - Edit these numbers to change text size ===
         const MAIN_MENU_FONT_SIZE = 26;      // Main app name (125kHz RFID, etc)
         const APP_CONTENT_FONT_SIZE = 35;    // Inner app text (Scan, Saved, Emulate, etc) - SCROLLABLE
-        const STATUS_TEXT_FONT_SIZE = 15;    // Bottom status info
+        const STATUS_TEXT_FONT_SIZE = 22;    // Bottom status info
         const START_TEXT_FONT_SIZE = 20;     // START button text
         const MASK_PADDING = 15 * UI_SCALE;   // Inner padding for mask/scroll area
         const SCROLLBAR_WIDTH = 8 * UI_SCALE; // Scrollbar thickness
@@ -104,19 +104,29 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         // Brute Force Progress Bar Configuration
         this.BRUTE_BAR = {
-            x: -120 * UI_SCALE,           // Horizontal position
+            x: -115 * UI_SCALE,           // Horizontal position
             y: 20 * UI_SCALE,          // Vertical position
-            width: 350 * UI_SCALE,     // Bar width
-            height: 14 * UI_SCALE      // Bar height
+            bgWidth: 280 * UI_SCALE,     // Background bar width
+            bgHeight: 14 * UI_SCALE,     // Background bar height
+            bgColor: 0x6f5720,           // Background color
+            fillHeight: 10 * UI_SCALE,   // Fill bar height (inner padding)
+            fillColor: 0x2c2c2c          // Fill color
         };
 
         // Control Overlay Positions (arrows and select button)
         this.CONTROL_OVERLAYS = {
-            up: { x: 405 * UI_SCALE, y: -220 * UI_SCALE },      // Up arrow position
-            down: { x: 405 * UI_SCALE, y: 0 * UI_SCALE },    // Down arrow position
-            left: { x: 296 * UI_SCALE, y: -110 * UI_SCALE },    // Left arrow position
-            right: { x: 520 * UI_SCALE, y: -110 * UI_SCALE },   // Right arrow position
-            select: { x: 405 * UI_SCALE, y: -110 * UI_SCALE }  // Select button position
+            up: { x: 405 * UI_SCALE, y: -220 * UI_SCALE, scale: 0.7 },      // Up arrow position and size
+            down: { x: 405 * UI_SCALE, y: 0 * UI_SCALE, scale: 0.7 },    // Down arrow position and size
+            left: { x: 296 * UI_SCALE, y: -110 * UI_SCALE, scale: 0.7 },    // Left arrow position and size
+            right: { x: 520 * UI_SCALE, y: -110 * UI_SCALE, scale: 0.7 },   // Right arrow position and size
+            select: { x: 405 * UI_SCALE, y: -110 * UI_SCALE, scale: 0.7 }  // Select button position and size
+        };
+
+        // Back Button Configuration (editable)
+        this.BACK_BUTTON = {
+            x: 630 * UI_SCALE,        // Horizontal position (left side)
+            y: 0 * UI_SCALE,          // Vertical position
+            scale: 0.7             // Scale factor - edit this to resize (editable)
         };
 
         // START Text Configuration (bottom of orange screen)
@@ -247,18 +257,18 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.bruteBarBg = scene.add.rectangle(
             this.BRUTE_BAR.x,
             this.BRUTE_BAR.y,
-            this.BRUTE_BAR.width,
-            this.BRUTE_BAR.height,
-            0x6f5720,
+            this.BRUTE_BAR.bgWidth,
+            this.BRUTE_BAR.bgHeight,
+            this.BRUTE_BAR.bgColor,
             0.9
         ).setVisible(false);
 
         this.bruteBarFill = scene.add.rectangle(
-            this.BRUTE_BAR.x - this.BRUTE_BAR.width / 2,
+            this.BRUTE_BAR.x - this.BRUTE_BAR.bgWidth / 2,
             this.BRUTE_BAR.y,
             0,
-            this.BRUTE_BAR.height - 4,
-            0x2c2c2c,
+            this.BRUTE_BAR.fillHeight,
+            this.BRUTE_BAR.fillColor,
             0.95
         ).setOrigin(0, 0.5).setVisible(false);
 
@@ -267,31 +277,37 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.CONTROL_OVERLAYS.up.x,
             this.CONTROL_OVERLAYS.up.y,
             'FlipperUp'
-        ).setOrigin(0.5, 0.5).setVisible(false);
+        ).setOrigin(0.5, 0.5).setScale(this.CONTROL_OVERLAYS.up.scale).setVisible(false);
 
         this.flipperDownOverlay = scene.add.image(
             this.CONTROL_OVERLAYS.down.x,
             this.CONTROL_OVERLAYS.down.y,
             'FlipperDown'
-        ).setOrigin(0.5, 0.5).setVisible(false);
+        ).setOrigin(0.5, 0.5).setScale(this.CONTROL_OVERLAYS.down.scale).setVisible(false);
 
         this.flipperLeftOverlay = scene.add.image(
             this.CONTROL_OVERLAYS.left.x,
             this.CONTROL_OVERLAYS.left.y,
             'FlipperLeft'
-        ).setOrigin(0.5, 0.5).setVisible(false);
+        ).setOrigin(0.5, 0.5).setScale(this.CONTROL_OVERLAYS.left.scale).setVisible(false);
 
         this.flipperRightOverlay = scene.add.image(
             this.CONTROL_OVERLAYS.right.x,
             this.CONTROL_OVERLAYS.right.y,
             'FlipperRight'
-        ).setOrigin(0.5, 0.5).setVisible(false);
+        ).setOrigin(0.5, 0.5).setScale(this.CONTROL_OVERLAYS.right.scale).setVisible(false);
 
         this.flipperSelectOverlay = scene.add.image(
             this.CONTROL_OVERLAYS.select.x,
             this.CONTROL_OVERLAYS.select.y,
             'FlipperSelect'
-        ).setOrigin(0.5, 0.5).setVisible(false);
+        ).setOrigin(0.5, 0.5).setScale(this.CONTROL_OVERLAYS.select.scale).setVisible(false);
+
+        this.flipperBackOverlay = scene.add.image(
+            this.BACK_BUTTON.x,
+            this.BACK_BUTTON.y,
+            'FlipperBack'
+        ).setOrigin(0.5, 0.5).setScale(this.BACK_BUTTON.scale).setVisible(false);
 
         this.add([
             flipperBg,
@@ -310,6 +326,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.flipperLeftOverlay,
             this.flipperRightOverlay,
             this.flipperSelectOverlay,
+            this.flipperBackOverlay,
             ...Object.values(this.appIcons)
         ]);
 
@@ -370,8 +387,20 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 // In text input mode, Q and F are typeable; use Enter to exit
                 return;
             }
+            this.flipperBackOverlay.setVisible(true);
             this.handleInput('back');
         });
+        scene.input.keyboard.on('keyup-Q', () => this.flipperBackOverlay.setVisible(false));
+
+        scene.input.keyboard.on('keydown-BACKSPACE', () => {
+            if (this.textInputMode && this.appSubScreen === 'add_id') {
+                // In text input mode, backspace deletes characters (handled elsewhere)
+                return;
+            }
+            this.flipperBackOverlay.setVisible(true);
+            this.handleInput('back');
+        });
+        scene.input.keyboard.on('keyup-BACKSPACE', () => this.flipperBackOverlay.setVisible(false));
 
         // Character input for text entry (Add ID mode)
         scene.input.keyboard.on('keydown', (event) => {
@@ -416,6 +445,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.bruteforceActive = false;
         this.bruteBarBg.setVisible(false);
         this.bruteBarFill.setVisible(false);
+        this.flipperBackOverlay.setVisible(false);
         this.textInputMode = false;
         this.textInputBuffer = '';
         this.scrollOffset = 0;
@@ -683,7 +713,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             callback: () => {
                 elapsed += tick;
                 const progress = Math.min(1, elapsed / total);
-                this.bruteBarFill.width = 286 * progress;
+                this.bruteBarFill.width = this.BRUTE_BAR.bgWidth * progress;
 
                 if (progress >= 1) {
                     timer.remove(false);

@@ -101,7 +101,7 @@ export class GameScene extends Phaser.Scene {
         const pixels = imageData.data;
 
         // Scale factor to match the displayed image
-        const scale = 0.25;
+        const scale = 0.5;
 
         // Grid size for collision detection (larger = better performance, less precise)
         const gridSize = 4; // Check every 4 pixels
@@ -340,11 +340,13 @@ export class GameScene extends Phaser.Scene {
                 .setVisible(false);
 
             // Add to computers array
+            // Increase radius for servers 03, 04, 06 (they need larger detection zones)
+            const radius = [3, 4, 6].includes(def.id) ? 120 : 80;
             this.computers.push({
                 id: def.id,
                 x: def.x,
                 y: def.y,
-                radius: 80,
+                radius,
                 visual,
                 label,
                 prompt
@@ -371,9 +373,10 @@ export class GameScene extends Phaser.Scene {
             prompt: null
         });
 
-        this.createFragment('sticky_note', 860, 340, 'STICKY UID FRAGMENT');
-        this.createFragment('terminal_dump', 856, 336, 'LAB TERMINAL DUMP');
-        this.createFragment('lab_log', 560, 690, 'LAB LOG FRAGMENT');
+        // Fragments hidden for now
+        // this.createFragment('sticky_note', 860, 340, 'STICKY UID FRAGMENT');
+        // this.createFragment('terminal_dump', 856, 336, 'LAB TERMINAL DUMP');
+        // this.createFragment('lab_log', 560, 690, 'LAB LOG FRAGMENT');
     }
 
     createFragment(fragmentId, x, y, title) {
@@ -440,6 +443,10 @@ export class GameScene extends Phaser.Scene {
 
         this.computers.forEach((computer) => {
             const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, computer.x, computer.y);
+            // Debug: log distances for servers 03, 04, 06
+            if ([3, 4, 6].includes(computer.id)) {
+                //console.log(`[Server-0${computer.id}] Distance: ${d.toFixed(1)}, Radius: ${computer.radius}, In Range: ${d <= computer.radius}`);
+            }
             if (d <= computer.radius && d < distance) {
                 distance = d;
                 nearest = computer;
@@ -614,7 +621,7 @@ export class GameScene extends Phaser.Scene {
                         this.walls.remove(barrier);
                         barrier.body.enable = false; // Disable collision
                     });
-                    this.events.emit('narrator-message', 'L2 CARD EMULATION ACTIVE - SERVER ROOM UNLOCKED');
+                    // Message shown when player reaches door, not here
                 }
             } else {
                 // DENY ACCESS: Restore barriers
@@ -624,7 +631,7 @@ export class GameScene extends Phaser.Scene {
                         this.walls.add(barrier);
                         barrier.body.enable = true; // Enable collision
                     });
-                    this.events.emit('narrator-message', 'L2 EMULATION STOPPED - SERVER ROOM LOCKED');
+                    // Message only shown when barrier is actually blocking player
                 }
             }
         }
@@ -655,6 +662,13 @@ export class GameScene extends Phaser.Scene {
                 this.walls.remove(door.collision);
                 if (door.collision.body) {
                     door.collision.body.enable = false;
+                }
+
+                // Show unlock message when door actually opens
+                if (door.id === 'lab_l2_door') {
+                    this.events.emit('narrator-message', 'L2 CARD EMULATION ACTIVE - SERVER ROOM UNLOCKED');
+                } else if (door.id === 'director_room_door') {
+                    this.events.emit('narrator-message', 'L3 ACCESS GRANTED - DIRECTOR ROOM UNLOCKED');
                 }
 
                 console.log(`[Door] ${door.id} unlocked with L${door.clearance} access`);
