@@ -128,12 +128,13 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         };
         // App Content Border Configuration (outline box for app content)
         this.APP_BORDER = {
-            x: -350 * UI_SCALE,        // Horizontal position
-            y: -249 * UI_SCALE,        // Vertical position
-            width: 500 * UI_SCALE,     // Border width
-            height: 280 * UI_SCALE,    // Border height
+            x: -365 * UI_SCALE,        // Horizontal position
+            y: -252 * UI_SCALE,        // Vertical position
+            width: 527 * UI_SCALE,     // Border width
+            height: 287 * UI_SCALE,    // Border height
             thickness: 6 * UI_SCALE,   // Line thickness
-            color: 0x1a1a1a // Border color
+            color: 0x1a1a1a,           // Border color
+            radius: 15 * UI_SCALE      // Corner radius
         };
         // ============================================================
         // END EASY EDIT SECTION
@@ -833,11 +834,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
     drawAppContentBorder() {
         this.appContentBorder.clear();
         this.appContentBorder.lineStyle(this.APP_BORDER.thickness, this.APP_BORDER.color, 1);
-        this.appContentBorder.strokeRect(
+        this.appContentBorder.strokeRoundedRect(
             this.APP_BORDER.x,
             this.APP_BORDER.y,
             this.APP_BORDER.width,
-            this.APP_BORDER.height
+            this.APP_BORDER.height,
+            this.APP_BORDER.radius
         );
         this.appContentBorder.setVisible(true);
     }
