@@ -19,45 +19,57 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.bruteforceActive = false;
         this.textInputBuffer = '';  // For Add ID text entry
         this.textInputMode = false; // Whether we're in text input mode
+        this.scrollOffset = 0;  // For scrolling content vertically
+        this.maxScrollOffset = 0;  // Maximum scroll offset based on content height
 
         // ============================================================
         // EASY EDIT SECTION - Adjust positions and sizes here
         // ============================================================
         
+        // === FONT SIZE SETTINGS - Edit these numbers to change text size ===
+        const MAIN_MENU_FONT_SIZE = 26;      // Main app name (125kHz RFID, etc)
+        const APP_CONTENT_FONT_SIZE = 35;    // Inner app text (Scan, Saved, Emulate, etc) - SCROLLABLE
+        const STATUS_TEXT_FONT_SIZE = 15;    // Bottom status info
+        const START_TEXT_FONT_SIZE = 20;     // START button text
+        
+        // Scale factor for entire UI (0.4 = 40% size)
+        const UI_SCALE = 0.65;
+        
         // Store all configurations as instance properties for reuse throughout the class
         
         // Orange Screen Configuration
         this.ORANGE_SCREEN = {
-            x: -115,           // Horizontal position
-            y: -25,         // Vertical position
-            width: 552,     // Width of orange display area
-            height: 283,    // Height of orange display area
-            color: 0xd4872d, // Orange color
-            radius: 8      // Corner radius
+            x: -100 * UI_SCALE,           // Horizontal position
+            y: -110 * UI_SCALE,         // Vertical position
+            width: 552 * UI_SCALE,     // Width of orange display area
+            height: 310 * UI_SCALE,    // Height of orange display area
+            color: 0xff9a24, // Orange color
+            radius: 30 * UI_SCALE      // Corner radius
         };
 
         // MAIN MENU TEXT CONFIGURATION - Edit text position and size
         this.MAIN_MENU_TEXT = {
-            x: -115,        // Horizontal position (center of orange screen)
-            y: -100,        // Vertical position (AT TOP edge of orange screen)
-            fontSize: '32px',
-            width: 400,
+            x: -115 * UI_SCALE,        // Horizontal position (center of orange screen)
+            y: -200 * UI_SCALE,        // Vertical position (AT TOP edge of orange screen)
+            fontSize: Math.round(MAIN_MENU_FONT_SIZE * UI_SCALE) + 'px',
+            width: 400 * UI_SCALE,
             align: 'center'
         };
 
         // MAIN MENU ICON CONFIGURATION - Edit icon position and size
         this.MAIN_MENU_ICON = {
-            x: -115,        // Horizontal position (center)
-            y: -10,         // Vertical position (AT BOTTOM of orange screen)
-            scale: 0.22      // Icon size (0.2 = 20% of original)
+            x: -115 * UI_SCALE,        // Horizontal position (center)
+            y: -80 * UI_SCALE,         // Vertical position (AT BOTTOM of orange screen)
+            scale: 0.3 * UI_SCALE      // Icon size (0.2 = 20% of original)
         };
 
         // App Content Text Configuration (smaller, left-aligned, TOP of screen)
+        // === EDIT APP_CONTENT_FONT_SIZE ABOVE TO CHANGE INNER TEXT SIZE ===
         this.APP_CONTENT_TEXT = {
-            x: -330,        // Horizontal position (left side)
-            y: -110,        // Vertical position (TOP area, very high)
-            fontSize: '27px',
-            width: 450,     // Text wrap width
+            x: -330 * UI_SCALE,        // Horizontal position (left side)
+            y: -220 * UI_SCALE,        // Vertical position (TOP area, very high)
+            fontSize: Math.round(APP_CONTENT_FONT_SIZE * UI_SCALE) + 'px',
+            width: 450 * UI_SCALE,     // Text wrap width
             align: 'left'
         };
 
@@ -71,43 +83,43 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         // Status Text Configuration (bottom info)
         this.STATUS_TEXT = {
-            x: -300,        // Horizontal position
-            y: 70,          // Vertical position
-            fontSize: '23px',
-            width: 280      // Text wrap width
+            x: -300 * UI_SCALE,        // Horizontal position
+            y: -20 * UI_SCALE,          // Vertical position
+            fontSize: Math.round(STATUS_TEXT_FONT_SIZE * UI_SCALE) + 'px',
+            width: 280 * UI_SCALE      // Text wrap width
         };
 
         // Brute Force Progress Bar Configuration
         this.BRUTE_BAR = {
-            x: -120,           // Horizontal position
-            y: 50,          // Vertical position
-            width: 350,     // Bar width
-            height: 14      // Bar height
+            x: -120 * UI_SCALE,           // Horizontal position
+            y: 20 * UI_SCALE,          // Vertical position
+            width: 350 * UI_SCALE,     // Bar width
+            height: 14 * UI_SCALE      // Bar height
         };
 
         // Control Overlay Positions (arrows and select button)
         this.CONTROL_OVERLAYS = {
-            up: { x: 281.5, y: -110 },      // Up arrow position
-            down: { x: 281.5, y: 10 },    // Down arrow position
-            left: { x: 222, y: -50 },    // Left arrow position
-            right: { x: 340, y: -50 },   // Right arrow position
-            select: { x: 281.5, y: -50 }  // Select button position
+            up: { x: 405 * UI_SCALE, y: -220 * UI_SCALE },      // Up arrow position
+            down: { x: 405 * UI_SCALE, y: 0 * UI_SCALE },    // Down arrow position
+            left: { x: 296 * UI_SCALE, y: -110 * UI_SCALE },    // Left arrow position
+            right: { x: 520 * UI_SCALE, y: -110 * UI_SCALE },   // Right arrow position
+            select: { x: 405 * UI_SCALE, y: -110 * UI_SCALE }  // Select button position
         };
 
         // START Text Configuration (bottom of orange screen)
         this.START_TEXT = {
-            x: -115,        // Horizontal position (center)
-            y: 80,          // Vertical position (bottom of orange screen)
-            fontSize: '30px',
+            x: -115 * UI_SCALE,        // Horizontal position (center)
+            y: 20 * UI_SCALE,          // Vertical position (bottom of orange screen)
+            fontSize: Math.round(START_TEXT_FONT_SIZE * UI_SCALE) + 'px',
             align: 'center'
         };
         // App Content Border Configuration (outline box for app content)
         this.APP_BORDER = {
-            x: -365,        // Horizontal position
-            y: -150,        // Vertical position
-            width: 500,     // Border width
-            height: 250,    // Border height
-            thickness: 4,   // Line thickness
+            x: -350 * UI_SCALE,        // Horizontal position
+            y: -249 * UI_SCALE,        // Vertical position
+            width: 500 * UI_SCALE,     // Border width
+            height: 280 * UI_SCALE,    // Border height
+            thickness: 6 * UI_SCALE,   // Line thickness
             color: 0x1a1a1a // Border color
         };
         // ============================================================
@@ -115,12 +127,21 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         // ============================================================
 
         // Main Flipper UI background image
-        const flipperBg = scene.add.image(0, 0, 'FlipperUI').setOrigin(0.5, 0.5);
+        const flipperBg = scene.add.image(0, 0, 'FlipperUI').setOrigin(0.5, 0.5).setScale(UI_SCALE);
 
         // Orange screen for content display
         const orangeScreen = scene.add.graphics();
         orangeScreen.fillStyle(this.ORANGE_SCREEN.color, 1);
         orangeScreen.fillRoundedRect(
+            this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2,
+            this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2,
+            this.ORANGE_SCREEN.width,
+            this.ORANGE_SCREEN.height,
+            this.ORANGE_SCREEN.radius
+        );
+        // Add black border
+        orangeScreen.lineStyle(4, 0x000000, 1);
+        orangeScreen.strokeRoundedRect(
             this.ORANGE_SCREEN.x - this.ORANGE_SCREEN.width / 2,
             this.ORANGE_SCREEN.y - this.ORANGE_SCREEN.height / 2,
             this.ORANGE_SCREEN.width,
@@ -265,6 +286,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         this.setVisible(false);
         this.setDepth(150);
+        // All component scaling is handled via UI_SCALE factor applied to coordinates
 
         // Key press handlers with visual feedback
         scene.input.keyboard.on('keydown-W', () => {
@@ -352,20 +374,22 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.selectedIndex = 0;
         this.statusText = '';
         this.busy = false;
+        this.scrollOffset = 0;  // Reset scroll position
         this.arrowLeft.setVisible(true);
         this.arrowRight.setVisible(true);
-        this.setVisible(true);
+        // Visibility is now handled by UIScene animations
         this.renderMenu();
     }
 
     close() {
-        this.setVisible(false);
+        // Visibility is now handled by UIScene animations
         this.busy = false;
         this.bruteforceActive = false;
         this.bruteBarBg.setVisible(false);
         this.bruteBarFill.setVisible(false);
         this.textInputMode = false;
         this.textInputBuffer = '';
+        this.scrollOffset = 0;
     }
 
     handleInput(action) {
@@ -443,6 +467,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 this.textInputBuffer = '';
                 this.appSubScreen = 'emulate';
                 this.selectedIndex = 0;
+                this.scrollOffset = 0;
                 this.renderMenu();
                 return;
             }
@@ -461,17 +486,18 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 
                 // Add the signal to the system
                 const addedOk = rfidSystem.addSignal(customSignal);
-                
+
                 // Now activate it
                 const ok = rfidSystem.setActiveSignal(newUID);
                 if (ok || addedOk) {
-                    this.statusText = `EMULATING: ${newUID}`;
+                    this.statusText = `ACTIVE: ${newUID} (L3)`;
                     this.textInputMode = false;
                     this.appSubScreen = 'emulate';
                     this.selectedIndex = 0;
+                    this.scrollOffset = 0;
                     console.log(`Custom ID emulation active: ${newUID}`);
                 } else {
-                    this.statusText = `Failed to emulate: ${newUID}`;
+                    this.statusText = `ERROR: Failed to add ${newUID}`;
                 }
                 this.textInputBuffer = '';
                 this.renderMenu();
@@ -484,12 +510,23 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         if (action === 'up') {
             this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+            // Scroll up based on line count in content
+            const lineHeight = 40; // Approximate line height for 35px font
+            if (this.selectedIndex * lineHeight < this.scrollOffset) {
+                this.scrollOffset = Math.max(0, this.selectedIndex * lineHeight);
+            }
             this.renderMenu();
             return;
         }
 
         if (action === 'down') {
             this.selectedIndex = Math.min(Math.max(entries.length - 1, 0), this.selectedIndex + 1);
+            // Scroll down based on line count
+            const lineHeight = 40; // Approximate line height for 35px font
+            const visibleHeight = this.ORANGE_SCREEN.height - 20; // Leave some margin
+            if ((this.selectedIndex + 1) * lineHeight > this.scrollOffset + visibleHeight) {
+                this.scrollOffset = Math.max(0, (this.selectedIndex + 1) * lineHeight - visibleHeight);
+            }
             this.renderMenu();
             return;
         }
@@ -504,6 +541,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 this.appSubScreen = 'main';
                 this.selectedIndex = 0;
             }
+            this.scrollOffset = 0;
             this.renderMenu();
             return;
         }
@@ -538,10 +576,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             if (choice === 'Saved') {
                 this.appSubScreen = 'saved';
                 this.selectedIndex = 0;
+                this.scrollOffset = 0;
             }
             if (choice === 'Emulate') {
                 this.appSubScreen = 'emulate';
                 this.selectedIndex = 0;
+                this.scrollOffset = 0;
             }
             this.renderMenu();
             return;
@@ -561,6 +601,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 this.appSubScreen = 'add_id';
                 this.textInputBuffer = '';
                 this.textInputMode = true;
+                this.scrollOffset = 0;
                 this.renderMenu();
                 return;
             }
@@ -568,10 +609,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             const ok = rfidSystem.setActiveSignal(choice);
             if (ok) {
                 const signal = rfidSystem.getSavedSignals().find((s) => s.uid === choice);
-                this.statusText = `EMULATING: ${choice}`;
+                this.statusText = signal
+                    ? `ACTIVE: ${choice} (L${signal.clearance})`
+                    : `ACTIVE: ${choice}`;
                 console.log(`Emulation active: ${choice}`);
             } else {
-                this.statusText = 'Failed to activate signal';
+                this.statusText = 'ERROR: Failed to activate';
             }
             this.renderMenu();
             return;
@@ -593,9 +636,9 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.scene.time.delayedCall(900, () => {
             const result = rfidSystem.scanTarget(scanTarget);
             if (result.ok && result.signal) {
-                this.statusText = `UID: ${result.signal.uid}`;
+                this.statusText = `SAVED: ${result.signal.uid} (L${result.signal.clearance})`;
             } else if (result.ok) {
-                this.statusText = 'Fragment captured';
+                this.statusText = 'FRAGMENT SAVED';
             } else {
                 this.statusText = result.message;
             }
@@ -627,11 +670,11 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 if (progress >= 1) {
                     timer.remove(false);
                     const result = rfidSystem.scanTarget(scanTarget);
-                    if (result.ok) {
-                        this.statusText = 'L2 Card cloned!';
+                    if (result.ok && result.signal) {
+                        this.statusText = `CLONED: ${result.signal.uid} (L${result.signal.clearance})`;
                         console.log('L2 Card (UID_TECH_22B) successfully scanned and stored');
                     } else {
-                        this.statusText = result.message;
+                        this.statusText = result.message || 'Scan failed';
                     }
                     this.busy = false;
                     this.bruteBarBg.setVisible(false);
@@ -672,6 +715,7 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.appContentBorder.setVisible(false);
             this.status.setText('');
             this.startText.setVisible(true);
+            this.scrollOffset = 0;
         } else if (this.currentScreen === 'app') {
             const appName = this.mainApps[this.selectedMainApp];
 
@@ -679,12 +723,12 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                 content = this.renderRFIDScreen();
             } else {
                 // Decoy app screen
-                content = `${appName}\n\n`;
-                content += 'Not available';
+                content = `${appName}\nNot available`;
             }
 
-            // Apply app content text styling
-            this.content.setPosition(this.APP_CONTENT_TEXT.x, this.APP_CONTENT_TEXT.y);
+            // Apply app content text styling with scroll offset
+            const displayY = this.APP_CONTENT_TEXT.y - this.scrollOffset;
+            this.content.setPosition(this.APP_CONTENT_TEXT.x, displayY);
             this.content.setFontSize(this.APP_CONTENT_TEXT.fontSize);
             this.content.setStyle({ align: this.APP_CONTENT_TEXT.align });
             this.content.setOrigin(0, 0);
@@ -722,55 +766,64 @@ export class FlipperUI extends Phaser.GameObjects.Container {
 
         if (this.appSubScreen === 'main') {
             const entries = this.getRFIDEntries();
-            content = entries
+            content = '125kHz RFID\n';
+            content += entries
                 .map((entry, index) => {
                     return index === this.selectedIndex ? `► ${entry}` : `  ${entry}`;
                 })
                 .join('\n');
         } else if (this.appSubScreen === 'saved') {
             const entries = this.getRFIDEntries();
-            content = 'SAVED:\n\n';
+            content = 'SAVED:\n';
             const savedSignals = rfidSystem.getSavedSignals();
 
             if (entries.length === 0) {
-                content += '(None)';
+                content += '(No signals)';
             } else {
                 content += entries
                     .map((uid, index) => {
                         const signal = savedSignals.find((entry) => entry.uid === uid);
-                        const prefix = index === this.selectedIndex ? '►' : ' ';
+                        const prefix = index === this.selectedIndex ? '► ' : '  ';
                         const activeMarker = (active && active.uid === uid) ? ' ★' : '';
-                        return `${prefix} ${uid}${activeMarker}`;
+                        let line = `\n${prefix}${uid}${activeMarker}`;
+                        if (signal) {
+                            line += ` L${signal.clearance}`;
+                        }
+                        return line;
                     })
-                    .join('\n');
+                    .join('');
             }
         } else if (this.appSubScreen === 'emulate') {
             const entries = this.getRFIDEntries();
-            content = 'EMULATING:\n\n';
+            content = 'EMULATE:\n';
             const savedSignals = rfidSystem.getSavedSignals();
 
             if (entries.length === 0) {
-                content += '(None)';
+                content += '(No signals)';
             } else {
                 content += entries
                     .map((uid, index) => {
                         if (uid === 'Add ID') {
-                            const prefix = index === this.selectedIndex ? '►' : ' ';
-                            return `${prefix} ${uid}`;
+                            const prefix = index === this.selectedIndex ? '► ' : '  ';
+                            return `\n${prefix}${uid}`;
                         }
                         const signal = savedSignals.find((entry) => entry.uid === uid);
-                        const prefix = index === this.selectedIndex ? '►' : ' ';
+                        const prefix = index === this.selectedIndex ? '► ' : '  ';
                         const activeMarker = (active && active.uid === uid) ? ' ★' : '';
-                        return `${prefix} ${uid}${activeMarker}`;
+                        let line = `\n${prefix}${uid}${activeMarker}`;
+                        if (signal) {
+                            line += ` L${signal.clearance}`;
+                        }
+                        return line;
                     })
-                    .join('\n');
+                    .join('');
             }
         } else if (this.appSubScreen === 'add_id') {
-            content = 'ENTER L-3 UID:\n\n';
+            content = 'ENTER UID:\n';
             content += this.textInputBuffer;
             const cursorChar = Math.floor(Date.now() / 500) % 2 === 0 ? '█' : ' ';
             content += cursorChar;
-            content += '\n\n[ENTER] Save\n[BACKSPACE] Delete\n[Q] Cancel';
+            content += '\n[ENTER] Save\n[BSP] Del\n[Q] X';
         }
 
         return content;

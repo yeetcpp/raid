@@ -24,8 +24,10 @@ export class GameScene extends Phaser.Scene {
         this.fragments = [];
         this.zones = [];
         this.computers = [];
+        this.doors = [];
 
         this.buildCollisionBodies();
+        this.buildDoors();
         this.buildZones();
         this.buildSources();
         this.buildServerEntryBarrier();
@@ -83,12 +85,177 @@ export class GameScene extends Phaser.Scene {
     }
 
     buildCollisionBodies() {
-        const collisions = this.cache.json.get('mapCollisions') || [];
-        collisions.forEach(({ x, y, w, h }) => {
-            const wall = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0);
-            this.physics.add.existing(wall, true);
-            this.walls.add(wall);
+        // Create collision bodies from non-transparent pixels in CollidingMap.png
+        const collidingTexture = this.textures.get('collidingMap');
+        const sourceImage = collidingTexture.getSourceImage();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = sourceImage.width;
+        canvas.height = sourceImage.height;
+        ctx.drawImage(sourceImage, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+
+        // Scale factor to match the displayed image
+        const scale = 0.25;
+
+        // Grid size for collision detection (larger = better performance, less precise)
+        const gridSize = 4; // Check every 4 pixels
+
+        // Track which pixels we've already processed
+        const processed = new Set();
+
+        // Scan the image and create collision rectangles for non-transparent regions
+        for (let y = 0; y < canvas.height; y += gridSize) {
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                const key = `${x},${y}`;
+                if (processed.has(key)) continue;
+
+                const idx = (y * canvas.width + x) * 4;
+                const alpha = pixels[idx + 3];
+
+                // If pixel is not transparent (alpha > 10 to account for anti-aliasing)
+                if (alpha > 10) {
+                    // Find the width of this solid region
+                    let width = gridSize;
+                    while (x + width < canvas.width) {
+                        const checkIdx = (y * canvas.width + (x + width)) * 4;
+                        if (pixels[checkIdx + 3] <= 10) break;
+                        width += gridSize;
+                    }
+
+                    // Find the height of this solid region
+                    let height = gridSize;
+                    let canExtendHeight = true;
+                    while (canExtendHeight && y + height < canvas.height) {
+                        // Check if the entire row is solid
+                        for (let checkX = x; checkX < x + width; checkX += gridSize) {
+                            const checkIdx = ((y + height) * canvas.width + checkX) * 4;
+                            if (pixels[checkIdx + 3] <= 10) {
+                                canExtendHeight = false;
+                                break;
+                            }
+                        }
+                        if (canExtendHeight) height += gridSize;
+                    }
+
+                    // Mark this region as processed
+                    for (let py = y; py < y + height; py += gridSize) {
+                        for (let px = x; px < x + width; px += gridSize) {
+                            processed.add(`${px},${py}`);
+                        }
+                    }
+
+                    // Create collision body (apply scale to position and size)
+                    const scaledX = x * scale;
+                    const scaledY = y * scale;
+                    const scaledWidth = width * scale;
+                    const scaledHeight = height * scale;
+
+                    const wall = this.add.rectangle(
+                        scaledX + scaledWidth / 2,
+                        scaledY + scaledHeight / 2,
+                        scaledWidth,
+                        scaledHeight,
+                        0x000000,
+                        0 // Invisible
+                    );
+                    this.physics.add.existing(wall, true);
+                    this.walls.add(wall);
+                }
+            }
+        }
+
+        console.log(`Created ${this.walls.getChildren().length} collision bodies from CollidingMap.png`);
+    }
+
+    buildDoors() {
+        // ===== DOOR CONFIGURATION =====
+        // Adjust position (x, y), rotation, and scale for each door
+        // rotation: 0 = vertical, 90 = horizontal
+        // scale: adjust visual size (default: 0.6)
+        const doorDefs = [
+            // L1 Doors - Classroom entrances (top-left area)
+            {
+                type: 'L1Door',
+                x: 175,
+                y: 325,
+                rotation: 0,
+                scale: 1,
+                clearance: 1,
+                id: 'classroom_door_1'
+            },
+            {
+                type: 'L1Door',
+                x: 380,
+                y: 190,
+                rotation: -90,
+                scale: 0.65,
+                clearance: 1,
+                id: 'classroom_door_2'
+            },
+
+            // L2 Door - Server room entrance
+            {
+                type: 'L2Door',
+                x: 420,
+                y: 870,
+                rotation: -90,
+                scale: 0.75,
+                clearance: 2,
+                id: 'server_room_door'
+            },
+
+            // L3 Door - Director room (bottom-right)
+            {
+                type: 'L3Door',
+                x: 870,
+                y: 610,
+                rotation: 0,
+                scale: 0.7,
+                clearance: 3,
+                id: 'director_room_door'
+            }
+        ];
+        // ==============================
+
+        // Create door animations
+        if (!this.anims.exists('L1Door_open')) {
+            this.anims.create({ key: 'L1Door_open', frames: this.anims.generateFrameNumbers('L1Door', { start: 0, end: 3 }), frameRate: 8, repeat: 0 });
+            this.anims.create({ key: 'L2Door_open', frames: this.anims.generateFrameNumbers('L2Door', { start: 0, end: 3 }), frameRate: 8, repeat: 0 });
+            this.anims.create({ key: 'L3Door_open', frames: this.anims.generateFrameNumbers('L3Door', { start: 0, end: 3 }), frameRate: 8, repeat: 0 });
+        }
+
+        doorDefs.forEach((def) => {
+            const door = this.add.sprite(def.x, def.y, def.type, 0)
+                .setOrigin(0.5, 0.5)
+                .setAngle(def.rotation)
+                .setDepth(16)
+                .setScale(def.scale);
+
+            // Create collision body for locked door
+            const collisionBody = this.add.rectangle(def.x, def.y, 60, 20, 0x000000, 0)
+                .setAngle(def.rotation);
+            this.physics.add.existing(collisionBody, true);
+            this.walls.add(collisionBody);
+
+            // Store door data
+            this.doors.push({
+                id: def.id,
+                sprite: door,
+                collision: collisionBody,
+                clearance: def.clearance,
+                x: def.x,
+                y: def.y,
+                radius: 80,
+                locked: true,
+                animating: false
+            });
         });
+
+        console.log(`Created ${this.doors.length} doors`);
     }
 
     buildZones() {
@@ -410,6 +577,7 @@ export class GameScene extends Phaser.Scene {
         this.updateServerRoomAccess(); // Check L2 emulation and manage barriers
         this.enforceServerRoomLock(); // Failsafe: push player out if they clip in without access
         this.updatePrompts();
+        this.updateDoors();
     }
 
     updateServerRoomAccess() {
@@ -442,6 +610,58 @@ export class GameScene extends Phaser.Scene {
                 }
             }
         }
+    }
+
+    updateDoors() {
+        if (!this.doors || this.doors.length === 0) return;
+
+        const active = rfidSystem.getActiveSignal();
+
+        this.doors.forEach((door) => {
+            const playerDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, door.x, door.y);
+            const isPlayerNear = playerDistance <= door.radius;
+
+            // Check if appropriate card is emulating
+            const hasAccess = active && active.clearance >= door.clearance;
+
+            // Door should unlock if player is near AND has correct clearance
+            if (isPlayerNear && hasAccess && door.locked) {
+                // Unlock and animate door
+                door.locked = false;
+                door.animating = true;
+
+                const animKey = door.sprite.texture.key + '_open';
+                door.sprite.play(animKey);
+
+                // Remove collision when door opens
+                this.walls.remove(door.collision);
+                if (door.collision.body) {
+                    door.collision.body.enable = false;
+                }
+
+                console.log(`[Door] ${door.id} unlocked with L${door.clearance} access`);
+
+                // Set animating to false when animation completes
+                door.sprite.once('animationcomplete', () => {
+                    door.animating = false;
+                    door.sprite.setFrame(3); // Freeze on last frame
+                });
+            }
+
+            // Re-lock door if player moves away or loses clearance
+            if ((!isPlayerNear || !hasAccess) && !door.locked && !door.animating) {
+                door.locked = true;
+                door.sprite.setFrame(0); // Reset to locked frame
+
+                // Re-enable collision
+                this.walls.add(door.collision);
+                if (door.collision.body) {
+                    door.collision.body.enable = true;
+                }
+
+                console.log(`[Door] ${door.id} locked`);
+            }
+        });
     }
 
     // Note: Server room barriers are now managed dynamically in updateServerRoomAccess()

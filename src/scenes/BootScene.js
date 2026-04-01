@@ -7,10 +7,15 @@ export class BootScene extends Phaser.Scene {
 
     preload() {
         // --- Load Generated Assets ---
-        this.load.spritesheet('player_spritesheet', 'assets/student_spritesheet.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('player_spritesheet', 'assets/pokespritechar.png', { frameWidth: 64, frameHeight: 64 });
         this.load.image('floorMap', 'assets/Floor.png');
         this.load.image('collidingMap', 'assets/CollidingMap.png');
         this.load.json('mapCollisions', 'assets/collisions.json');
+
+        // --- Load Door Spritesheets ---
+        this.load.spritesheet('L1Door', 'assets/L1DoorSprite.png', { frameWidth: 97, frameHeight: 61.25 });
+        this.load.spritesheet('L2Door', 'assets/L2DoorSprite.png', { frameWidth: 97, frameHeight: 61.25 });
+        this.load.spritesheet('L3Door', 'assets/L3DoorSprite.png', { frameWidth: 97, frameHeight: 61.25 });
 
         // --- Load Flipper UI Assets ---
         this.load.image('FlipperUI', 'assets/FlipperUI.png');

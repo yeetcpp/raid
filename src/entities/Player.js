@@ -1,5 +1,11 @@
 import Phaser from 'phaser';
 
+// ===== CHARACTER SIZE CONFIGURATION =====
+// Adjust this value to change the character size
+// Default: 0.6 (recommended range: 0.4 - 1.0)
+const CHARACTER_SCALE = 0.8;
+// ========================================
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'player_spritesheet', 0);
@@ -7,11 +13,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.setScale(1.5);
+        this.setScale(CHARACTER_SCALE);
         this.setCollideWorldBounds(true);
-        this.setSize(16, 20); // slightly larger hitbox for larger scale
-        this.setOffset(8, 8);
-        this.setDepth(10);
+        this.setSize(48, 52);
+        this.setOffset(8, 6);
+        this.setOrigin(0.5, 0.5);
+        this.setDepth(20);
+        this.setAlpha(1);
+        this.setVisible(true);
+        this.setFrame(0);
 
         this.speed = 180;
         this.drag = 1000;
@@ -45,9 +55,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     createAnimations(scene) {
         if (!scene.anims.exists('walk_down')) {
-            scene.anims.create({ key: 'walk_down', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 0, end: 2 }), frameRate: 9, repeat: -1 });
-            scene.anims.create({ key: 'walk_side', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 3, end: 5 }), frameRate: 9, repeat: -1 });
-            scene.anims.create({ key: 'walk_up', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 6, end: 8 }), frameRate: 9, repeat: -1 });
+            // Row 0: down-walk (frames 0-3)
+            scene.anims.create({ key: 'walk_down', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
+            // Row 1: left-walk (frames 4-7)
+            scene.anims.create({ key: 'walk_left', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 4, end: 7 }), frameRate: 8, repeat: -1 });
+            // Row 2: right-walk (frames 8-11)
+            scene.anims.create({ key: 'walk_right', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 8, end: 11 }), frameRate: 8, repeat: -1 });
+            // Row 3: up-walk (frames 12-15)
+            scene.anims.create({ key: 'walk_up', frames: scene.anims.generateFrameNumbers('player_spritesheet', { start: 12, end: 15 }), frameRate: 8, repeat: -1 });
         }
     }
 
@@ -56,8 +71,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         let vy = 0;
         let moving = false;
 
-        if (this.keys.A.isDown) { vx = -1; this.setFlipX(false); moving = true; }
-        else if (this.keys.D.isDown) { vx = 1; this.setFlipX(true); moving = true; }
+        if (this.keys.A.isDown) { vx = -1; moving = true; }
+        else if (this.keys.D.isDown) { vx = 1; moving = true; }
 
         if (this.keys.W.isDown) { vy = -1; moving = true; }
         else if (this.keys.S.isDown) { vy = 1; moving = true; }
@@ -74,9 +89,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.particles.emitParticleAt(this.x, this.y + 10);
 
             // Animation logic
-            if (vx !== 0) {
-                this.lastFacing = 'side';
-                this.play('walk_side', true);
+            if (vx < 0) {
+                this.lastFacing = 'left';
+                this.play('walk_left', true);
+            } else if (vx > 0) {
+                this.lastFacing = 'right';
+                this.play('walk_right', true);
             } else if (vy > 0) {
                 this.lastFacing = 'down';
                 this.play('walk_down', true);
@@ -86,8 +104,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
         } else {
             this.stop();
-            if (this.lastFacing === 'side') this.setFrame(3);
-            else if (this.lastFacing === 'up') this.setFrame(6);
+            if (this.lastFacing === 'left') this.setFrame(4);
+            else if (this.lastFacing === 'right') this.setFrame(8);
+            else if (this.lastFacing === 'up') this.setFrame(12);
             else this.setFrame(0);
         }
 

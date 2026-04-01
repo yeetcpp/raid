@@ -12,7 +12,7 @@ export class UIScene extends Phaser.Scene {
         this.inventoryOpen = false;
         this.gameOver = false;
 
-        const hudTop = this.add.rectangle(400, 20, 790, 34, 0x0f151b, 0.8)
+        const hudTop = this.add.rectangle(513, 30, 1000, 51, 0x0f151b, 0.8)
             .setOrigin(0.5)
             .setStrokeStyle(1, 0x476472, 0.8);
 
@@ -37,32 +37,41 @@ export class UIScene extends Phaser.Scene {
         this.heatBarBg = this.add.rectangle(610, 23, 170, 8, 0x20252b, 1).setOrigin(0, 0);
         this.heatBarFill = this.add.rectangle(610, 23, 0, 8, 0x87c77d, 1).setOrigin(0, 0);
 
-        this.narratorBg = this.add.rectangle(400, 540, 760, 78, 0x111923, 0.88)
+        this.narratorBg = this.add.rectangle(513, 975, 980, 117, 0x111923, 0.88)
             .setOrigin(0.5)
             .setStrokeStyle(2, 0x6daab6, 0.9)
             .setAlpha(0); // Initially hidden and slightly below final position
 
-        this.narratorText = this.add.text(30, 520, '', {
+        this.narratorText = this.add.text(30, 945, '', {
             fontFamily: 'monospace',
             fontSize: '14px',
             fill: '#d5ebe8',
-            wordWrap: { width: 740 }
+            wordWrap: { width: 920 }
         }).setAlpha(0); // Initially hidden and slightly below final position
 
-        this.controlHintsText = this.add.text(550, 575, '[WASD] MOVE  [E] INTERACT  [F] FLIPPER  [I] INVENTORY', {
+        this.controlHintsText = this.add.text(513, 995, '[WASD] MOVE  [E] INTERACT  [F] FLIPPER  [I] INVENTORY', {
             fontFamily: 'monospace',
             fontSize: '11px',
             fill: '#6a8792'
         }).setOrigin(0.5).setAlpha(0); // Initially hidden
 
-        this.flipper = new FlipperUI(this, 400, 470);
-        this.flipper.setScale(0.58);
+        // Flipper backdrop (dim background when Flipper is open)
+        this.flipperBackdrop = this.add.rectangle(513, 512, 1026, 1024, 0x000000, 0)
+            .setDepth(50)
+            .setVisible(false);
 
-        this.inventoryBackdrop = this.add.rectangle(400, 300, 800, 600, 0x06080b, 0.72)
+        this.flipper = new FlipperUI(this, 513, 705);
+        this.flipper.setScale(0.58);
+        this.flipper.setDepth(60);
+        this.flipper.setVisible(false);
+        this.flipper.setAlpha(0);
+        this.flipper.setY(705 + 100); // Start position below
+
+        this.inventoryBackdrop = this.add.rectangle(513, 512, 1026, 1024, 0x06080b, 0.72)
             .setDepth(168)
             .setVisible(false);
 
-        this.inventory = this.add.container(400, 300);
+        this.inventory = this.add.container(513, 512);
         this.buildInventory();
         this.inventory.setVisible(false);
         this.inventory.setDepth(170);
@@ -188,9 +197,55 @@ export class UIScene extends Phaser.Scene {
             if (this.inventoryOpen) {
                 this.toggleInventory();
             }
+
+            // Initialize the flipper menu content first
             this.flipper.open();
+
+            // Show and animate in
+            this.flipper.setVisible(true);
+            this.flipperBackdrop.setVisible(true);
+
+            // Animate backdrop fade in
+            this.tweens.add({
+                targets: this.flipperBackdrop,
+                alpha: 0.5,
+                duration: 300,
+                ease: 'Power2.out'
+            });
+
+            // Animate Flipper slide up and fade in
+            this.tweens.add({
+                targets: this.flipper,
+                y: 705,
+                alpha: 1,
+                duration: 350,
+                ease: 'Back.easeOut'
+            });
+
         } else {
-            this.flipper.close();
+            // Animate backdrop fade out
+            this.tweens.add({
+                targets: this.flipperBackdrop,
+                alpha: 0,
+                duration: 250,
+                ease: 'Power2.in',
+                onComplete: () => {
+                    this.flipperBackdrop.setVisible(false);
+                }
+            });
+
+            // Animate Flipper slide down and fade out
+            this.tweens.add({
+                targets: this.flipper,
+                y: 705 + 100,
+                alpha: 0,
+                duration: 300,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    this.flipper.close();
+                    this.flipper.setVisible(false);
+                }
+            });
         }
     }
 
@@ -260,7 +315,7 @@ export class UIScene extends Phaser.Scene {
         this.tweens.add({
             targets: this.narratorBg,
             alpha: 0.88,
-            y: 525,
+            y: 950,
             duration: 300,
             ease: 'Power2.out'
         });
@@ -268,7 +323,7 @@ export class UIScene extends Phaser.Scene {
         this.tweens.add({
             targets: this.narratorText,
             alpha: 1,
-            y: 505,
+            y: 920,
             duration: 300,
             ease: 'Power2.out'
         });
@@ -285,7 +340,7 @@ export class UIScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.narratorBg,
                 alpha: 0,
-                y: 540, // Slide down slightly
+                y: 975, // Slide down slightly
                 duration: 350,
                 ease: 'Power2.in'
             });
@@ -293,7 +348,7 @@ export class UIScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.narratorText,
                 alpha: 0,
-                y: 520, // Slide down slightly
+                y: 945, // Slide down slightly
                 duration: 350,
                 ease: 'Power2.in'
             });
@@ -335,23 +390,23 @@ export class UIScene extends Phaser.Scene {
         this.inventory.setVisible(false);
         this.scene.pause('GameScene');
 
-        const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.88).setDepth(250);
+        const overlay = this.add.rectangle(513, 512, 1026, 1024, 0x000000, 0.88).setDepth(250);
 
-        const title = this.add.text(400, 220, isWin ? 'SERVER ACCESS UNLOCKED' : 'LOCKDOWN', {
+        const title = this.add.text(513, 380, isWin ? 'SERVER ACCESS UNLOCKED' : 'LOCKDOWN', {
             fontFamily: 'monospace',
             fontSize: '46px',
             fill: isWin ? '#8ad989' : '#ef7e74',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(251);
 
-        const subtitle = this.add.text(400, 290, isWin ? `Method: ${reason}` : 'Heat reached maximum. All scanners disabled.', {
+        const subtitle = this.add.text(513, 485, isWin ? `Method: ${reason}` : 'Heat reached maximum. All scanners disabled.', {
             fontFamily: 'monospace',
             fontSize: '18px',
             fill: isWin ? '#bde8bc' : '#e8afa9',
             align: 'center'
         }).setOrigin(0.5).setDepth(251);
 
-        const prompt = this.add.text(400, 400, '[R] RESTART', {
+        const prompt = this.add.text(513, 650, '[R] RESTART', {
             fontFamily: 'monospace',
             fontSize: '18px',
             fill: '#c7dce1'

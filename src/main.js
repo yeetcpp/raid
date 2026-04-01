@@ -5,8 +5,8 @@ import { UIScene } from './scenes/UIScene.js';
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1026,
+    height: 1024,
     parent: 'game-container',
     backgroundColor: '#0a0a12',
     pixelArt: false,
