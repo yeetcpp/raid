@@ -62,6 +62,19 @@ export class GameScene extends Phaser.Scene {
             this.playerMovementEnabled = true;
         });
 
+        // Handle flipper open/close events (also blocks player movement)
+        this.events.on('flipper-opened', () => {
+            this.playerMovementEnabled = false;
+            this.player.body.setVelocity(0, 0);
+        });
+
+        this.events.on('flipper-closed', () => {
+            // Only re-enable movement if terminal is also closed
+            if (!this.terminalUI || !this.terminalUI.isOpen()) {
+                this.playerMovementEnabled = true;
+            }
+        });
+
         this.setupInput();
 
         this.time.addEvent({
@@ -101,7 +114,7 @@ export class GameScene extends Phaser.Scene {
         const pixels = imageData.data;
 
         // Scale factor to match the displayed image
-        const scale = 0.5;
+        const scale = 0.25;
 
         // Grid size for collision detection (larger = better performance, less precise)
         const gridSize = 4; // Check every 4 pixels
@@ -362,6 +375,67 @@ export class GameScene extends Phaser.Scene {
         };
 
         const officeBadge = this.add.image(697, 550, 'L2Card').setScale(0.075).setDepth(17);
+        
+        // L-2 Card Effect Configuration (EDITABLE)
+        const L2_CARD_EFFECTS = {
+            glow: {
+                radius: 18,        // Green glow circle radius (was 35)
+                lineWidth: 3,      // Green glow line thickness (was 4)  
+                alpha: 0.4,        // Green glow opacity
+                duration: 1500     // Green glow animation duration
+            },
+            shimmer: {
+                radius: 12,        // White shimmer circle radius (was 25)
+                alpha: 0.6,        // White shimmer opacity (was 0.8)
+                duration: 2000,    // White shimmer animation duration
+                alphaMultiplier: 0.3  // Alpha calculation multiplier (was 0.4)
+            }
+        };
+        
+        // Add green glowing outline for L-2 Card (scannable indicator)
+        const l2CardGlow = this.add.graphics({ fillStyle: { color: 0x00ff00 } });
+        l2CardGlow.setDepth(16); // Behind the card but above background
+        
+        // White shimmering animation overlay for L-2 Card
+        const l2CardShimmer = this.add.graphics();
+        l2CardShimmer.setDepth(18); // Above the card
+        
+        // Store references for cleanup
+        officeBadge.glowGraphics = l2CardGlow;
+        officeBadge.shimmerGraphics = l2CardShimmer;
+        
+        // Green glowing outline animation
+        this.tweens.add({
+            targets: l2CardGlow,
+            alpha: L2_CARD_EFFECTS.glow.alpha,
+            duration: L2_CARD_EFFECTS.glow.duration,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.inOut',
+            onUpdate: () => {
+                l2CardGlow.clear();
+                l2CardGlow.lineStyle(L2_CARD_EFFECTS.glow.lineWidth, 0x00ff00, l2CardGlow.alpha);
+                l2CardGlow.strokeCircle(697, 550, L2_CARD_EFFECTS.glow.radius);
+            }
+        });
+        
+        // White shimmering animation
+        this.tweens.add({
+            targets: l2CardShimmer,
+            alpha: L2_CARD_EFFECTS.shimmer.alpha,
+            duration: L2_CARD_EFFECTS.shimmer.duration,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Quad.inOut',
+            onUpdate: () => {
+                l2CardShimmer.clear();
+                if (l2CardShimmer.alpha > 0.1) {
+                    l2CardShimmer.fillStyle(0xffffff, l2CardShimmer.alpha * L2_CARD_EFFECTS.shimmer.alphaMultiplier);
+                    l2CardShimmer.fillCircle(697, 550, L2_CARD_EFFECTS.shimmer.radius);
+                }
+            }
+        });
+        
         this.signalSources.push({
             kind: 'source',
             sourceId: 'OFFICE_L2_BADGE',
@@ -647,7 +721,14 @@ export class GameScene extends Phaser.Scene {
             const isPlayerNear = playerDistance <= door.radius;
 
             // Check if appropriate card is emulating
-            const hasAccess = active && active.clearance >= door.clearance;
+            let hasAccess = false;
+            if (door.id === 'server_room_door') {
+                // L2 door requires SPECIFIC L2 card (UID_TECH_22B), not just clearance
+                hasAccess = active && active.uid === 'UID_TECH_22B' && active.clearance >= 2;
+            } else {
+                // Other doors use standard clearance check
+                hasAccess = active && active.clearance >= door.clearance;
+            }
 
             // Door should unlock if player is near AND has correct clearance
             if (isPlayerNear && hasAccess && door.locked) {
@@ -665,8 +746,8 @@ export class GameScene extends Phaser.Scene {
                 }
 
                 // Show unlock message when door actually opens
-                if (door.id === 'lab_l2_door') {
-                    this.events.emit('narrator-message', 'L2 CARD EMULATION ACTIVE - SERVER ROOM UNLOCKED');
+                if (door.id === 'server_room_door') {
+                    this.events.emit('narrator-message', 'SERVER ROOM UNLOCKED - L2 EMULATION ACTIVE');
                 } else if (door.id === 'director_room_door') {
                     this.events.emit('narrator-message', 'L3 ACCESS GRANTED - DIRECTOR ROOM UNLOCKED');
                 }

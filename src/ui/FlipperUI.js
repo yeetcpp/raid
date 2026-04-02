@@ -334,44 +334,52 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.setDepth(150);
         // All component scaling is handled via UI_SCALE factor applied to coordinates
 
-        // Key press handlers with visual feedback
-        scene.input.keyboard.on('keydown-W', () => {
-            this.flipperUpOverlay.setVisible(true);
-            this.handleInput('up');
-        });
-        scene.input.keyboard.on('keyup-W', () => this.flipperUpOverlay.setVisible(false));
-
-        scene.input.keyboard.on('keydown-S', () => {
-            this.flipperDownOverlay.setVisible(true);
-            this.handleInput('down');
-        });
-        scene.input.keyboard.on('keyup-S', () => this.flipperDownOverlay.setVisible(false));
+        // Key press handlers with visual feedback (removed W/S - only arrow keys allowed)
+        // scene.input.keyboard.on('keydown-W') - REMOVED: Only arrow keys for navigation
+        // scene.input.keyboard.on('keydown-S') - REMOVED: Only arrow keys for navigation
 
         scene.input.keyboard.on('keydown-UP', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             this.flipperUpOverlay.setVisible(true);
             this.handleInput('up');
         });
-        scene.input.keyboard.on('keyup-UP', () => this.flipperUpOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-UP', () => {
+            if (!this.visible) return;
+            this.flipperUpOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-DOWN', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             this.flipperDownOverlay.setVisible(true);
             this.handleInput('down');
         });
-        scene.input.keyboard.on('keyup-DOWN', () => this.flipperDownOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-DOWN', () => {
+            if (!this.visible) return;
+            this.flipperDownOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-LEFT', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             this.flipperLeftOverlay.setVisible(true);
             this.handleInput('left');
         });
-        scene.input.keyboard.on('keyup-LEFT', () => this.flipperLeftOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-LEFT', () => {
+            if (!this.visible) return;
+            this.flipperLeftOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-RIGHT', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             this.flipperRightOverlay.setVisible(true);
             this.handleInput('right');
         });
-        scene.input.keyboard.on('keyup-RIGHT', () => this.flipperRightOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-RIGHT', () => {
+            if (!this.visible) return;
+            this.flipperRightOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-ENTER', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             if (this.textInputMode && this.appSubScreen === 'add_id') {
                 // In text input mode, Enter confirms the input
                 this.handleRFIDInput('enter');
@@ -380,9 +388,13 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.flipperSelectOverlay.setVisible(true);
             this.handleInput('enter');
         });
-        scene.input.keyboard.on('keyup-ENTER', () => this.flipperSelectOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-ENTER', () => {
+            if (!this.visible) return;
+            this.flipperSelectOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-Q', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             if (this.textInputMode && this.appSubScreen === 'add_id') {
                 // In text input mode, Q and F are typeable; use Enter to exit
                 return;
@@ -390,9 +402,13 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.flipperBackOverlay.setVisible(true);
             this.handleInput('back');
         });
-        scene.input.keyboard.on('keyup-Q', () => this.flipperBackOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-Q', () => {
+            if (!this.visible) return;
+            this.flipperBackOverlay.setVisible(false);
+        });
 
         scene.input.keyboard.on('keydown-BACKSPACE', () => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             if (this.textInputMode && this.appSubScreen === 'add_id') {
                 // In text input mode, backspace deletes characters (handled elsewhere)
                 return;
@@ -400,10 +416,14 @@ export class FlipperUI extends Phaser.GameObjects.Container {
             this.flipperBackOverlay.setVisible(true);
             this.handleInput('back');
         });
-        scene.input.keyboard.on('keyup-BACKSPACE', () => this.flipperBackOverlay.setVisible(false));
+        scene.input.keyboard.on('keyup-BACKSPACE', () => {
+            if (!this.visible) return;
+            this.flipperBackOverlay.setVisible(false);
+        });
 
         // Character input for text entry (Add ID mode)
         scene.input.keyboard.on('keydown', (event) => {
+            if (!this.visible) return; // Block input when FlipperUI is closed
             if (this.textInputMode && this.appSubScreen === 'add_id') {
                 const key = event.key.toUpperCase();
                 // Accept alphanumeric, underscore, hyphen, colon, F, and Q for UID formats
@@ -437,6 +457,9 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.arrowRight.setVisible(true);
         // Visibility is now handled by UIScene animations
         this.renderMenu();
+        
+        // Emit event to block player movement and other inputs
+        this.scene.events.emit('flipper-opened');
     }
 
     close() {
@@ -449,6 +472,9 @@ export class FlipperUI extends Phaser.GameObjects.Container {
         this.textInputMode = false;
         this.textInputBuffer = '';
         this.scrollOffset = 0;
+        
+        // Emit event to restore player movement and other inputs
+        this.scene.events.emit('flipper-closed');
     }
 
     handleInput(action) {
@@ -543,18 +569,16 @@ export class FlipperUI extends Phaser.GameObjects.Container {
                     color: 'Yellow'
                 };
                 
-                // Add the signal to the system
+                // Add the signal to the system (but don't auto-emulate)
                 const addedOk = rfidSystem.addSignal(customSignal);
 
-                // Now activate it
-                const ok = rfidSystem.setActiveSignal(newUID);
-                if (ok || addedOk) {
-                    this.statusText = `ACTIVE: ${newUID} (L3)`;
+                if (addedOk) {
+                    this.statusText = `SAVED: ${newUID} (L3) - Go to Emulate menu`;
                     this.textInputMode = false;
-                    this.appSubScreen = 'emulate';
+                    this.appSubScreen = 'main'; // Return to main menu instead of emulate
                     this.selectedIndex = 0;
                     this.scrollOffset = 0;
-                    console.log(`Custom ID emulation active: ${newUID}`);
+                    console.log(`Custom ID saved: ${newUID} - Manual emulation required`);
                 } else {
                     this.statusText = `ERROR: Failed to add ${newUID}`;
                 }

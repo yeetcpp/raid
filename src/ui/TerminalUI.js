@@ -146,6 +146,13 @@ export class TerminalUI {
             return;
         }
 
+        // Block terminal input when FlipperUI is open (FlipperUI has priority)
+        const gameScene = this.scene;
+        const uiScene = gameScene.scene.get('UIScene');
+        if (uiScene && uiScene.flipperOpen) {
+            return;
+        }
+
         if (event.key === 'Escape') {
             return;
         }
@@ -302,6 +309,14 @@ export class TerminalUI {
     }
 
     renderTerminal() {
+        // First, render all output lines without the input line
+        const outputOnlyText = this.outputLines.join('\n');
+        this.contentText.setText(outputOnlyText);
+        
+        // Get the actual height of the output text
+        const outputHeight = this.contentText.height;
+        
+        // Now set the full text including input line
         const lines = [...this.outputLines, `${this.prompt} ${this.currentInput}`];
         this.contentText.setText(lines.join('\n'));
 
@@ -310,7 +325,10 @@ export class TerminalUI {
         // For monospace font, each character is approximately 7.8 pixels wide at 13px font size
         const charWidth = 7.8;
         const cursorX = this.contentX + (currentLine.length * charWidth);
-        const cursorY = this.contentY + ((lines.length - 1) * this.lineHeight);
+        
+        // Position cursor at the input line level (baseline of the input text)
+        // Add small spacing if there's output above
+        const cursorY = this.contentY + outputHeight + (this.outputLines.length > 0 ? 4 : 0);
         
         this.cursor.setPosition(cursorX, cursorY);
     }

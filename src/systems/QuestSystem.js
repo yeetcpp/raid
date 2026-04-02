@@ -8,7 +8,6 @@ export class QuestSystem extends Phaser.Events.EventEmitter {
 
         this.quests = [
             { id: 'explore_classroom', text: 'Explore the classroom', trigger: 'zone:classroom', auto: true },
-            { id: 'check_inventory', text: 'Check your inventory [I]', trigger: 'action:open_inventory' },
             { id: 'open_flipper', text: 'Open the Flipper device [F]', trigger: 'action:open_flipper' },
             { id: 'find_terminal', text: 'Find an RFID terminal', trigger: 'action:near_terminal' },
             { id: 'scan_terminal', text: 'Scan a terminal signal', trigger: 'action:scan' },

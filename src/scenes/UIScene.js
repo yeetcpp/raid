@@ -9,7 +9,6 @@ export class UIScene extends Phaser.Scene {
 
     create() {
         this.flipperOpen = false;
-        this.inventoryOpen = false;
         this.gameOver = false;
 
         const hudTop = this.add.rectangle(480, 18, 800, 28, 0x0f151b, 0.8)
@@ -60,7 +59,19 @@ export class UIScene extends Phaser.Scene {
 
         const flipperHintBox = this.add.rectangle(25, 705, 140, 30, 0x1a242d, 0.9)
             .setOrigin(0, 0.5)
-            .setStrokeStyle(1, 0x5a7a87, 0.8);
+            .setStrokeStyle(1, 0x5a7a87, 0.8)
+            .setInteractive()
+            .on('pointerover', () => {
+                flipperHintBox.setFillStyle(0x2a343d, 0.9);
+                flipperHintBox.setStrokeStyle(2, 0x6a8a97, 1.0);
+            })
+            .on('pointerout', () => {
+                flipperHintBox.setFillStyle(0x1a242d, 0.9);
+                flipperHintBox.setStrokeStyle(1, 0x5a7a87, 0.8);
+            })
+            .on('pointerdown', () => {
+                this.toggleFlipper();
+            });
 
         this.flipperHintText = this.add.text(30, 705, '[F] FLIPPER UI', {
             fontFamily: 'monospace',
@@ -73,7 +84,7 @@ export class UIScene extends Phaser.Scene {
         
         this.flipper = new FlipperUI(this, 480, 490);
         this.flipper.setScale(1);
-        this.flipper.setDepth(60);
+        this.flipper.setDepth(210); // Above terminal (which uses 200-203)
         this.flipper.setVisible(false);
         this.flipper.setAlpha(0);
         
@@ -82,20 +93,24 @@ export class UIScene extends Phaser.Scene {
         const startY = isDialogueVisible ? 450 : 560;
         this.flipper.setY(startY + 100); // Start position below
 
-        this.inventoryBackdrop = this.add.rectangle(480, 360, 960, 720, 0x06080b, 0.72)
-            .setDepth(168)
-            .setVisible(false);
-
-        this.inventory = this.add.container(480, 360);
-        this.buildInventory();
-        this.inventory.setVisible(false);
-        this.inventory.setDepth(170);
+        // Update button text based on initial terminal state
+        this.updateFlipperButtonText();
 
         const gameScene = this.scene.get('GameScene');
         gameScene.events.on('zone-updated', (zoneId) => {
             this.zoneText.setText(`ZONE: ${zoneId.toUpperCase()}`);
         });
         gameScene.events.on('narrator-message', this.playNarratorLine, this);
+
+        // Listen for terminal state changes to update button text
+        if (gameScene) {
+            gameScene.events.on('terminal-opened', () => {
+                this.updateFlipperButtonText();
+            });
+            gameScene.events.on('terminal-closed', () => {
+                this.updateFlipperButtonText();
+            });
+        }
 
         this.events.on('close-flipper', () => {
             if (this.flipperOpen) {
@@ -111,13 +126,8 @@ export class UIScene extends Phaser.Scene {
             this.toggleFlipper();
         });
 
-        this.input.keyboard.on('keydown-I', () => {
-            this.toggleInventory();
-        });
-
         rfidSystem.on('heat-changed', this.renderHeat, this);
         rfidSystem.on('active-signal-changed', this.renderActiveSignal, this);
-        rfidSystem.on('signals-updated', () => this.renderInventory(), this);
 
         rfidSystem.on('game-win', (reason) => this.showGameEnd(true, reason));
         rfidSystem.on('game-lose', () => this.showGameEnd(false));
@@ -131,74 +141,8 @@ export class UIScene extends Phaser.Scene {
         this.renderActiveSignal(rfidSystem.getActiveSignal());
 
         this.time.delayedCall(500, () => {
-            this.playNarratorLine('Hey there. Welcome to the school, You can use WASD to move. Feel free to explore the map. The keybind to open your backpack/inventory is I');
+            this.playNarratorLine('Hey there. Welcome to the school. You can use WASD to move. Feel free to explore the map and use the Flipper device.');
         });
-    }
-
-    buildInventory() {
-        const bg = this.add.rectangle(0, 0, 620, 420, 0x10161e, 0.98)
-            .setStrokeStyle(3, 0x75b8bf, 0.95);
-
-        const header = this.add.rectangle(0, -176, 620, 46, 0x1b2b38, 1)
-            .setStrokeStyle(1, 0x55798a, 0.8);
-
-        const title = this.add.text(0, -176, 'BACKPACK // SIGNAL STORAGE', {
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            fill: '#d7ede8',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        this.inventoryText = this.add.text(-286, -126, '', {
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            fill: '#aad8e0',
-            lineSpacing: 6,
-            wordWrap: { width: 350 }
-        });
-
-        // Embedded stylized Flipper in backpack UI
-        const deviceBody = this.add.rectangle(170, 22, 220, 300, 0x222c34, 1)
-            .setStrokeStyle(3, 0x0a0f14, 1);
-        const deviceScreen = this.add.rectangle(170, -68, 160, 120, 0xefd48b, 1)
-            .setStrokeStyle(2, 0x7c5e1e, 1);
-        this.inventoryFlipperScreen = this.add.text(100, -108, 'FLIPPER\nACTIVE UID\nL1 STUDENT', {
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            fill: '#2f2f2f',
-            align: 'left'
-        });
-
-        const dpad = this.add.circle(170, 68, 24, 0x111820, 1).setStrokeStyle(2, 0x3d4f5c, 1);
-        const ok = this.add.circle(210, 68, 12, 0x1b2731, 1).setStrokeStyle(1, 0x536a79, 1);
-        const footerPanel = this.add.rectangle(170, 128, 170, 70, 0x1a232c, 1)
-            .setStrokeStyle(1, 0x3f5564, 0.9);
-        this.inventoryDeviceInfo = this.add.text(95, 108, 'NO SIGNAL SELECTED', {
-            fontFamily: 'monospace',
-            fontSize: '11px',
-            fill: '#9bc6cd'
-        });
-
-        const footer = this.add.text(0, 152, '[I] CLOSE', {
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            fill: '#8eb0b9'
-        }).setOrigin(0.5);
-
-        this.inventory.add([
-            bg,
-            header,
-            title,
-            this.inventoryText,
-            deviceBody,
-            deviceScreen,
-            this.inventoryFlipperScreen,
-            dpad,
-            ok,
-            footerPanel,
-            this.inventoryDeviceInfo,
-            footer
-        ]);
     }
 
     toggleFlipper() {
@@ -206,18 +150,11 @@ export class UIScene extends Phaser.Scene {
             return;
         }
 
-        const gameScene = this.scene.get('GameScene');
-        if (gameScene && gameScene.terminalUI && gameScene.terminalUI.isOpen()) {
-            return;
-        }
+        // Remove terminal blocking - now allow FlipperUI to open over terminal
 
         this.flipperOpen = !this.flipperOpen;
 
         if (this.flipperOpen) {
-            if (this.inventoryOpen) {
-                this.toggleInventory();
-            }
-
             // Initialize the flipper menu content first
             this.flipper.open();
 
@@ -231,7 +168,7 @@ export class UIScene extends Phaser.Scene {
 
             // Create fresh dim overlay for this opening
             const flipperDim = this.add.rectangle(480, 360, 960, 720, 0x000000, 0.6)
-                .setDepth(50)
+                .setDepth(205) // Above terminal but below FlipperUI
                 .setScrollFactor(0)
                 .setOrigin(0.5, 0.5)
                 .setVisible(true);
@@ -313,58 +250,14 @@ export class UIScene extends Phaser.Scene {
         });
     }
 
-    toggleInventory() {
-        if (this.gameOver) {
-            return;
-        }
-
+    updateFlipperButtonText() {
         const gameScene = this.scene.get('GameScene');
-        if (gameScene && gameScene.terminalUI && gameScene.terminalUI.isOpen()) {
-            return;
-        }
-
-        this.inventoryOpen = !this.inventoryOpen;
-
-        if (this.inventoryOpen) {
-            if (this.flipperOpen) {
-                this.toggleFlipper();
-            }
-            this.renderInventory();
-            this.inventoryBackdrop.setVisible(true);
-            this.inventory.setVisible(true);
-            this.scene.pause('GameScene');
+        const isTerminalOpen = gameScene && gameScene.terminalUI && gameScene.terminalUI.isOpen();
+        
+        if (isTerminalOpen) {
+            this.flipperHintText.setText('F to open Flipper');
         } else {
-            this.inventoryBackdrop.setVisible(false);
-            this.inventory.setVisible(false);
-            this.scene.resume('GameScene');
-        }
-    }
-
-    renderInventory() {
-        const saved = rfidSystem.getSavedSignals();
-        const active = rfidSystem.getActiveSignal();
-        const lines = [];
-
-        if (saved.length === 0) {
-            lines.push('No captured signals.');
-        } else {
-            saved.forEach((signal, index) => {
-                const marker = active && active.uid === signal.uid ? '*' : ' ';
-                lines.push(`${marker} ${index + 1}. ${signal.uid}`);
-                lines.push(`   Source: ${signal.source}`);
-                lines.push(`   Clearance: L${signal.clearance} (${signal.color})`);
-                lines.push('');
-            });
-        }
-
-        this.inventoryText.setText(lines.join('\n'));
-
-        if (active) {
-            this.inventoryFlipperScreen.setText(`FLIPPER\nUID ${active.uid}\nCLR L${active.clearance}`);
-            this.inventoryDeviceInfo.setText(`SRC: ${active.source}\nCOLOR: ${active.color}`);
-        } else {
-            this.inventoryFlipperScreen.setText('FLIPPER\nNO ACTIVE\nSIGNAL');
-            this.inventoryDeviceInfo.setText('SOURCE: UNKNOWN');
+            this.flipperHintText.setText('[F] FLIPPER UI');
         }
     }
 
@@ -459,7 +352,6 @@ export class UIScene extends Phaser.Scene {
     showGameEnd(isWin, reason = '') {
         this.gameOver = true;
         this.flipper.close();
-        this.inventory.setVisible(false);
         this.scene.pause('GameScene');
 
         const overlay = this.add.rectangle(480, 360, 960, 720, 0x000000, 0.88).setDepth(250);
