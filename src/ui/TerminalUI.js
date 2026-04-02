@@ -11,13 +11,9 @@ export class TerminalUI {
         this.executing = false;
         this.prompt = 'root@docker:/home/player/files#';
         
-        // Detect bridge URL - use window.location.host for port, Docker service name for hostname
-        // In Docker: accessible at http://terminal-bridge:8787
-        // Locally: accessible at http://localhost:8787
-        const hostname = window.location.hostname;
-        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-        const bridgeHost = isLocalhost ? 'localhost' : 'terminal-bridge';
-        this.bridgeBaseUrl = `http://${bridgeHost}:8787`;
+        // Bridge URL - now proxied through nginx on same port as main app
+        // Accessible at /api/ path (nginx proxies to terminal bridge internally)
+        this.bridgeBaseUrl = '/api';
         
         // Command history
         this.commandHistory = [];

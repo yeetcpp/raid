@@ -26,7 +26,7 @@ services:
       - NODE_ENV=production
       - PORT=80
       - TERMINAL_BRIDGE_URL=http://terminal-bridge:8787
-      - FLAG=${FLAG:-Default @123}
+      - FLAG=${FLAG:-Default@123}
     
     # Volume for live development (optional - comment out for production)
     # volumes:
@@ -80,9 +80,8 @@ services:
     # Image name
     image: flipper-terminal-bridge:latest
     
-    # Port mapping: Host port 8787 → Container port 8787
-    ports:
-      - "8787:8787"
+    # No external port - accessed via flipper-app's nginx proxy
+    # Port 8787 only accessible internally on flipper-network
     
     # Working directory
     working_dir: /app

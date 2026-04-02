@@ -29,37 +29,73 @@ function writeJson(res, statusCode, payload) {
 function runDockerCommand(command, computerId, callback) {
     const normalizedComputerId = String(computerId);
 
+    // Check if we should run locally (standalone mode) or via docker exec (compose mode)
+    const USE_LOCAL_EXECUTION = process.env.STANDALONE_MODE === 'true';
+
     // Compose command that runs with restricted PATH and as terminal user
     // This ensures proper environment isolation
     const fullCommand = `export PATH="/usr/local/restricted/bin" HOME="/home/player" COMPUTER_ID="${normalizedComputerId}" REAL_UID="${SESSION_REAL_UID}" CORRECT_PC="${SESSION_CORRECT_PC}"; source /home/player/.bashrc 2>/dev/null; ${command}`;
 
-    // Use docker exec directly to run command in the running container
-    // This works inside the bridge container without needing docker-compose
-    const child = spawn(
-        'docker',
-        [
-            'exec',
-            '-u',
-            'terminal',
-            '-e',
-            `COMPUTER_ID=${normalizedComputerId}`,
-            '-e',
-            `REAL_UID=${SESSION_REAL_UID}`,
-            '-e',
-            `CORRECT_PC=${SESSION_CORRECT_PC}`,
-            'flipper-linux-terminal',
-            '/bin/bash',
-            '-c',
-            fullCommand
-        ],
-        {
-            cwd: PROJECT_ROOT,
-            env: process.env
-        }
-    );
+    let child;
+    
+    if (USE_LOCAL_EXECUTION) {
+        // Standalone mode: Run commands directly in this container as the player user
+        child = spawn(
+            '/bin/su',
+            [
+                '-',
+                'player',
+                '-c',
+                fullCommand
+            ],
+            {
+                cwd: '/home/player/files',
+                env: {
+                    ...process.env,
+                    COMPUTER_ID: normalizedComputerId,
+                    REAL_UID: SESSION_REAL_UID,
+                    CORRECT_PC: SESSION_CORRECT_PC,
+                    HOME: '/home/player',
+                    PATH: '/usr/local/restricted/bin'
+                }
+            }
+        );
+    } else {
+        // Docker-compose mode: Use docker exec to run in separate terminal container
+        child = spawn(
+            'docker',
+            [
+                'exec',
+                '-u',
+                'terminal',
+                '-e',
+                `COMPUTER_ID=${normalizedComputerId}`,
+                '-e',
+                `REAL_UID=${SESSION_REAL_UID}`,
+                '-e',
+                `CORRECT_PC=${SESSION_CORRECT_PC}`,
+                'flipper-linux-terminal',
+                '/bin/bash',
+                '-c',
+                fullCommand
+            ],
+            {
+                cwd: PROJECT_ROOT,
+                env: process.env
+            }
+        );
+    }
 
     let stdout = '';
     let stderr = '';
+    let callbackCalled = false;
+
+    const safeCallback = (...args) => {
+        if (!callbackCalled) {
+            callbackCalled = true;
+            callback(...args);
+        }
+    };
 
     child.stdout.on('data', (chunk) => {
         stdout += chunk.toString();
@@ -70,7 +106,7 @@ function runDockerCommand(command, computerId, callback) {
     });
 
     child.on('error', (error) => {
-        callback(error);
+        safeCallback(error);
     });
 
     child.on('close', (code) => {
@@ -105,7 +141,7 @@ function runDockerCommand(command, computerId, callback) {
             })
             .join('\n');
 
-        callback(null, { stdout, stderr: filteredStderr, exitCode: code });
+        safeCallback(null, { stdout, stderr: filteredStderr, exitCode: code });
     });
 }
 
@@ -194,8 +230,8 @@ server.on('error', (error) => {
     process.exit(1);
 });
 
-server.listen(PORT, () => {
-    console.log(`[terminal-bridge] listening on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[terminal-bridge] listening on http://0.0.0.0:${PORT}`);
     console.log('[terminal-bridge] endpoints:');
     console.log('  - GET  /session  (returns { realUid, correctPc })');
     console.log('  - POST /execute  { command: "ls", computerId: 1 }');

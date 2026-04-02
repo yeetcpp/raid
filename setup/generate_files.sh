@@ -226,5 +226,5 @@ EOF
     esac
 fi
 
-chown -R terminal:terminal /home/player || true
-chmod 0644 "$FILES_DIR"/*.txt
+chown -R terminal:terminal /home/player 2>/dev/null || chown -R player:player /home/player 2>/dev/null || true
+chmod 0644 "$FILES_DIR"/*.txt 2>/dev/null || true
